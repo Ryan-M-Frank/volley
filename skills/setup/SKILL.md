@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Use to initialize the Volley Claude+Codex workflow in this repo. Runs once per repo. Verifies Codex is logged in, registers Codex as an MCP server in .mcp.json, scaffolds .volley/ with HANDOFF.md template, .gitignore, and an initial STATE file. Runs a smoke test that calls Codex via MCP.
+description: Use to initialize the Volley Claude+Codex workflow in this repo. Runs once per repo. Verifies Codex is installed, confirms the bundled Codex MCP server is reachable, scaffolds .volley/ with HANDOFF.md template, .gitignore, and an initial STATE file. Runs a smoke test that calls Codex via MCP.
 ---
 
 # /volley:setup
@@ -13,20 +13,14 @@ One-time installation of the Volley workflow.
    - Run: `codex --version` — must succeed and print a version >= 0.129.
    - We do NOT run an explicit `codex login` probe here; the exact auth-status subcommand varies by Codex CLI version and a missing/wrong subcommand could falsely report "not logged in." Instead, the MCP smoke test in step 4 will surface auth errors clearly when the bridge tries to call Codex. If the smoke test fails with an auth error, instruct the user to run `codex login` and retry.
 
-2. **Register Codex as a project-scoped MCP server.**
-   - Read `.mcp.json` if it exists; otherwise create with `{"mcpServers": {}}`.
-   - Add or update the `codex` entry:
-     ```json
-     {
-       "mcpServers": {
-         "codex": {
-           "command": "codex",
-           "args": ["mcp-server"]
-         }
-       }
-     }
-     ```
-   - Use the Edit or Write tool to persist `.mcp.json`. If pre-existing entries exist, preserve them.
+2. **Confirm the bundled Codex MCP server is reachable.**
+   - Volley bundles the Codex MCP server (see the plugin's `.mcp.json`); you do NOT write a project `.mcp.json`.
+   - Check whether the `mcp__codex__codex` tool is available in this session.
+   - If it is NOT available, the plugin was just installed and its MCP server has not loaded yet. Tell the user:
+     "Run `/reload-plugins` (or restart Claude Code) so Volley's bundled Codex server loads, then re-run `/volley:setup`."
+     (Confirm the exact reload command against this Claude Code version if `/reload-plugins` is not recognized.)
+     Then STOP - do not continue until the tool is reachable.
+   - If it IS available, continue.
 
 3. **Scaffold `.volley/`.**
    - Create directory: `mkdir -p .volley`
@@ -52,7 +46,7 @@ One-time installation of the Volley workflow.
 
 ## What to do on already-installed repos
 
-If `.mcp.json` already has the `codex` entry AND `.volley/STATE` exists, skip steps 2 and 3. Just re-run the smoke test (step 4) and print the next-step block.
+If `.volley/STATE` exists, skip scaffolding; just re-run the smoke test (step 4) and print the next-step block.
 
 ## Failure modes
 

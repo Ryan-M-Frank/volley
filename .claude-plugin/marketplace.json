@@ -1,6 +1,7 @@
 {
   "name": "volley",
   "owner": { "name": "Ryan Frank" },
+  "description": "Volley - two AI coding assistants in one repo, behind a hard lock.",
   "plugins": [
     {
       "name": "volley",
