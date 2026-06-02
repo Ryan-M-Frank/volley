@@ -140,6 +140,12 @@ Fix every warning — shellcheck is run at the `warning` severity level, which c
 
 ---
 
+## Extending the second assistant
+
+**Want Volley to drive a different second assistant** (Cursor, Gemini, Aider...)? See [`docs/EXTENDING-ASSISTANTS.md`](docs/EXTENDING-ASSISTANTS.md).
+
+---
+
 ## Licensing
 
 By submitting a PR you agree that your contribution will be licensed under the same [Apache-2.0](LICENSE) license as the rest of the project.

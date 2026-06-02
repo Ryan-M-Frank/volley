@@ -165,7 +165,7 @@ Subagents inherit the parent session's lock state but don't acquire their own. D
 - [ ] Project-wide lock (across multiple repos in a workspace)
 - [ ] Cost/token telemetry per session
 
-v0.1 pairs Claude with OpenAI Codex; the second assistant is swappable - see the extension guide, and pluggable adapters are on the roadmap. (A guide will be added at `docs/EXTENDING-ASSISTANTS.md`.)
+v0.1 pairs Claude with OpenAI Codex; the second assistant is swappable - see [docs/EXTENDING-ASSISTANTS.md](docs/EXTENDING-ASSISTANTS.md), and pluggable adapters are on the roadmap.
 
 See [issues](https://github.com/Ryan-M-Frank/volley/issues) for the current state.
 
