@@ -32,10 +32,9 @@ One-time installation of the Volley workflow.
      ```
 
 4. **Smoke-test the MCP bridge.**
-   - Tell the user: "Restart Claude Code now so the MCP server registration takes effect, then re-run `/volley:setup` (it will skip already-done steps and just run the smoke test). If you re-run this before restarting, you'll see an MCP-tool-not-available error - that's expected; just restart and re-run."
-   - On the second invocation (after restart), check whether the `mcp__codex__codex` tool is available. The Codex MCP server exposes two tools: `mcp__codex__codex` (start a Codex session) and `mcp__codex__codex-reply` (continue an existing session). Older skill docs may reference `mcp__codex__exec` or `mcp__codex__review` - those names are wrong; only the two above are real.
-   - If available, invoke `mcp__codex__codex` with: `prompt: "Reply with the single word: PONG"`, `sandbox: "read-only"`, `approval-policy: "never"`. Verify the response contains `PONG`. Read-only sandbox + no-approval policy makes the smoke test cheap and side-effect-free.
-   - If not available, instruct the user to check Claude Code's MCP server status (`/mcp` slash command) and re-run after fixing.
+   - By this point step 2 has confirmed the `mcp__codex__codex` tool is reachable. (The Codex MCP server exposes exactly two tools: `mcp__codex__codex` to start a session and `mcp__codex__codex-reply` to continue one. Older docs mention `mcp__codex__exec`/`mcp__codex__review` - those names are wrong.)
+   - Invoke `mcp__codex__codex` with: `prompt: "Reply with the single word: PONG"`, `sandbox: "read-only"`, `approval-policy: "never"`. Verify the response contains `PONG`. Read-only sandbox + no-approval policy makes the smoke test cheap and side-effect-free.
+   - If the call fails with an auth error, tell the user to run `codex login` and retry. If the tool is somehow unavailable, return to step 2 (run `/reload-plugins` or restart, then re-run `/volley:setup`).
 
 5. **Print the next-step block.**
    - Use `volley_next_step` from the lib:

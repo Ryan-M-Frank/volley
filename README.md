@@ -3,7 +3,7 @@
 > Two AI coding assistants, one repository, zero deadlocks.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/Ryan-M-Frank/volley/ci.yml?branch=main)](https://github.com/Ryan-M-Frank/volley/actions)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache-2.0-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/claude--code-skills-orange)](https://docs.claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/codex--cli-MCP-black)](https://github.com/openai/codex)
 
@@ -27,25 +27,18 @@ If you've ever:
 ## The flow
 
 ```
-┌────────────────┐                ┌────────────────┐
-│   You + Claude │                │     Codex      │
-│                │                │                │
-│  /volley:review-  │ ── via MCP ──▶ │  reads plan,   │
-│  plan          │                │  returns       │
-│                │ ◀── verdict ── │  critique      │
-└────────────────┘                └────────────────┘
+  Plan / PR review — fast, returns in seconds (over MCP)
 
-┌────────────────┐                ┌────────────────┐
-│   You + Claude │                │     Codex      │
-│                │                │                │
-│  /volley:implement│ ─── spawns ──▶ │ writes code in │
-│  (Claude reads │                │ a visible      │
-│  STATE=codex,  │                │ terminal tab,  │
-│  hands off)    │                │ commits        │
-│                │ ◀── STATE ──── │                │
-│  /volley:review-  │     released   │                │
-│  code          │                │                │
-└────────────────┘                └────────────────┘
+    You + Claude  ──/volley:review-plan──▶  Codex reads the plan
+    You + Claude  ◀──────── verdict ───────  and returns a critique
+                                             (→ .volley/PLAN-REVIEW.md)
+
+  Implementation — long-running, in a visible terminal
+
+    You + Claude  ──/volley:implement───▶  Codex writes the code in
+    (hands off, waits on the lock)          its own terminal tab and
+    You + Claude  ◀──── STATE released ───  commits as it goes
+    You + Claude  ──/volley:review-code──▶  Claude reviews the diff
 ```
 
 A `.volley/STATE` file records which assistant is currently authoritative (`ACTIVE=claude` or `ACTIVE=codex`), a PID, and a timestamp. Every skill refuses to act unless the lock matches it. No race, no clobbered edits, no "wait, who wrote this?"
@@ -64,7 +57,7 @@ cd my-project
 claude  # start Claude Code
 
 # 3. Inside Claude Code
-/volley:setup           # one-time: registers Codex as MCP, scaffolds .volley/
+/volley:setup           # one-time: confirms the bundled Codex MCP, scaffolds .volley/
 /volley:status          # sanity-check the install
 ```
 
@@ -74,10 +67,10 @@ Once installed, the skills below are available in any repo.
 
 | Skill | What it does | Calls Codex via |
 |---|---|---|
-| **`/volley:setup`** | One-time install: verifies Codex, registers MCP, scaffolds `.volley/` | (smoke test) |
+| **`/volley:setup`** | One-time: verifies Codex, confirms the bundled MCP is reachable, scaffolds `.volley/` | (smoke test) |
 | **`/volley:status`** | Inspect the lock state, lock age, stale-PID detection | (local only) |
 | **`/volley:unlock`** | Force-clear a stuck STATE lock (escape hatch) | (local only) |
-| **`/volley:doctor`** | Health-check: verify Codex auth, MCP registration, and STATE integrity | (local only) |
+| **`/volley:doctor`** | Health-check: Codex CLI, MCP reachability, platform terminal, and lock state | (local only) |
 | **`/volley:review-plan`** | Hand a plan document to Codex for review; output to `.volley/PLAN-REVIEW.md` | **MCP** (fast) |
 | **`/volley:review-pr <num>`** | Hand a GitHub PR diff to Codex for review; output to `.volley/PR-REVIEW-<num>.md` | **MCP** (fast) |
 | **`/volley:implement`** | Hand a plan to Codex; Codex runs in a visible terminal tab while Claude waits | **Terminal spawn** (long-running) |
@@ -92,7 +85,7 @@ Two transports for two latency profiles. Short ops (plan review, PR review) go t
 - **Bash** (Git Bash on Windows is fine)
 - For `/volley:implement` only:
   - **macOS:** iTerm2 or Terminal.app
-  - **Linux:** gnome-terminal, kitty, wezterm, or any terminal + tmux
+  - **Linux:** gnome-terminal or kitty (desktop), or tmux (headless / SSH)
   - **Windows:** Windows Terminal (`wt`) + Git Bash (`cygpath`)
 
 ## Platform support
@@ -148,7 +141,7 @@ Sometimes you want a fresh perspective. Codex doesn't see Claude's context windo
 You can. Volley adds (a) the hard lock so they can't both edit at once, (b) structured handoffs through `.volley/` files Claude reads automatically, and (c) the MCP pathway so short ops complete inline without a terminal swap.
 
 **Q: Will this work with Gemini CLI / Aider / Cursor?**
-Not today. Codex is the only second-assistant currently supported. The lock model is general — PRs welcome that add other transports.
+Not out of the box — v0.1 ships with Codex as the second assistant. But the backend is swappable: the [extension guide](docs/EXTENDING-ASSISTANTS.md) documents exactly where Codex is wired in and how to point Volley at another assistant. Pluggable adapters are on the roadmap.
 
 **Q: My lock got stuck after closing the Codex terminal.**
 Run `/volley:status` to see the lock age and PID liveness, then `/volley:unlock` to clear. The lock has a 30-minute stale threshold by default.
@@ -158,9 +151,7 @@ Subagents inherit the parent session's lock state but don't acquire their own. D
 
 ## Roadmap
 
-- [ ] Mac variant of `spawn-codex` (iTerm2 + Terminal.app)
-- [ ] Linux variant of `spawn-codex` (gnome-terminal, kitty, wezterm, tmux fallback)
-- [ ] Gemini CLI support
+- [ ] Pluggable second-assistant adapters (Gemini, Cursor, Aider) — see [docs/EXTENDING-ASSISTANTS.md](docs/EXTENDING-ASSISTANTS.md)
 - [ ] GitHub Actions workflow that runs `/volley:review-pr` automatically on new PRs
 - [ ] Project-wide lock (across multiple repos in a workspace)
 - [ ] Cost/token telemetry per session

@@ -16,7 +16,7 @@ scripts/
   platforms/
     windows.sh          Windows Terminal (wt) + PowerShell handler
     macos.sh            iTerm2 / Terminal.app handler (community-tested)
-    linux.sh            gnome-terminal / kitty / wezterm / tmux handler (community-tested)
+    linux.sh            gnome-terminal / kitty (desktop), tmux fallback (community-tested)
     tmux.sh             Universal tmux fallback (CI-tested on ubuntu/macos)
   templates/
     gitignore           Template .gitignore dropped into .volley/ by /volley:setup

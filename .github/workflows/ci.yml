@@ -19,13 +19,7 @@ jobs:
           if [ "$RUNNER_OS" = "macOS" ]; then brew install tmux || true; fi
       - name: Run bash test suite
         shell: bash
-        run: |
-          fail=0
-          for t in tests/*.sh; do
-            echo "== $t =="
-            bash "$t" || fail=1
-          done
-          exit $fail
+        run: bash tests/run-all.sh
   shellcheck:
     runs-on: ubuntu-latest
     steps:

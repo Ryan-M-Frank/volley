@@ -20,7 +20,7 @@ for t in tests/*.sh; do bash "$t"; done
 
 - [ ] Windows (Windows Terminal + Git Bash)
 - [ ] macOS (specify terminal: iTerm2 / Terminal.app / other: _____)
-- [ ] Linux desktop (specify terminal: gnome-terminal / kitty / wezterm / other: _____)
+- [ ] Linux desktop (specify terminal: gnome-terminal / kitty / other: _____)
 - [ ] tmux (specify OS: _____)
 - [ ] Not applicable (change does not touch spawn or platform handlers)
 
