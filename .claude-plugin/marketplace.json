@@ -1,0 +1,11 @@
+{
+  "name": "volley",
+  "owner": { "name": "Ryan Frank" },
+  "plugins": [
+    {
+      "name": "volley",
+      "source": "./",
+      "description": "Two AI coding assistants in one repo, behind a hard lock."
+    }
+  ]
+}

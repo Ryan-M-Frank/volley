@@ -1,0 +1,10 @@
+{
+  "name": "volley",
+  "version": "0.1.0",
+  "description": "Two AI coding assistants in one repo, behind a hard lock. Claude and OpenAI Codex plan, implement, and review each other's work without colliding.",
+  "author": { "name": "Ryan Frank", "email": "frank.ryanm@gmail.com" },
+  "homepage": "https://github.com/Ryan-M-Frank/volley",
+  "repository": "https://github.com/Ryan-M-Frank/volley",
+  "license": "Apache-2.0",
+  "keywords": ["claude-code", "codex", "pair-programming", "code-review", "workflow"]
+}
