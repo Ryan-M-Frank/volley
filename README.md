@@ -1,11 +1,15 @@
-# Volley
+<div align="center">
 
-> Two AI coding assistants, one repository, zero deadlocks.
+# 🎾 Volley
+
+**Two AI coding assistants. One repository. Zero deadlocks.**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/Ryan-M-Frank/volley/ci.yml?branch=main)](https://github.com/Ryan-M-Frank/volley/actions)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/claude--code-skills-orange)](https://docs.claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/codex--cli-MCP-black)](https://github.com/openai/codex)
+
+</div>
 
 Volley is a small bundle of [Claude Code](https://docs.claude.com/claude-code) skills that lets [OpenAI Codex CLI](https://github.com/openai/codex) work alongside Claude in the same repository — planning, implementing, and reviewing each other's work — without either one trampling files the other is editing.
 
