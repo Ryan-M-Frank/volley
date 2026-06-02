@@ -1,0 +1,6 @@
+# Volley transient files - never commit
+STATE
+IMPLEMENTATION-LOG.md
+log-*.jsonl
+pr-*-meta.json
+pr-*-diff.patch
