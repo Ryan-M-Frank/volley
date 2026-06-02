@@ -19,13 +19,13 @@ If the `/volley:*` skills aren't available immediately after installation, reloa
 /reload-plugins
 ```
 
-Then run the one-time setup (once per machine — not once per repo):
+Then run the one-time setup (once per repo):
 
 ```
 /volley:setup
 ```
 
-Setup verifies that Codex is installed and authenticated, registers Codex as an MCP server in your Claude Code config, and confirms the MCP connection with a smoke-test call.
+Setup verifies that Codex is installed, confirms the bundled Codex MCP server is reachable, and runs a smoke-test call.
 
 ---
 
@@ -35,7 +35,7 @@ Setup verifies that Codex is installed and authenticated, registers Codex as an 
 /volley:doctor
 ```
 
-Doctor checks: Codex binary on PATH, `codex login` authentication, MCP server registration, and (if you're in a repo) STATE file integrity. Fix any items it flags before proceeding.
+Doctor checks: Codex binary on PATH, MCP reachability, platform terminal, plugin assets, and (if you're in a repo) STATE file integrity. Fix any items it flags before proceeding.
 
 ---
 
@@ -91,7 +91,7 @@ Read the review and revise the plan before handing off to implementation.
 
 This flips the STATE lock to `ACTIVE=codex` and spawns a **visible terminal tab** running `codex exec` against your plan. You can watch Codex work in real time — it streams its progress to the terminal. Claude's session is now read-only (it will refuse to write until the lock is released).
 
-When Codex finishes, it releases the lock by setting `ACTIVE=claude` and creating a `.volley/CODEX-STARTED-<nonce>` handshake file. Claude detects this and becomes active again automatically.
+When Codex finishes, it releases the lock by setting `ACTIVE=claude`. Claude detects this and becomes active again automatically.
 
 You do not need to do anything while Codex is running. You can switch to the Codex terminal to watch, or do something else entirely.
 
@@ -105,7 +105,7 @@ Once the lock is back on Claude:
 /volley:review-code
 ```
 
-Claude reads the diff of everything Codex committed against the plan in `HANDOFF.md` and writes a structured review to `.volley/CODE-REVIEW.md`. This is Claude reviewing Codex's work — a genuinely independent perspective since Claude did not write the implementation.
+Claude reads the diff of the changes Codex made against the plan in `HANDOFF.md` and writes a structured review to `.volley/CODE-REVIEW.md`. This is Claude reviewing Codex's work — a genuinely independent perspective since Claude did not write the implementation.
 
 If the review surfaces issues, you can ask Claude to fix them directly (it now holds the lock) or iterate with another round of `/volley:implement`.
 
@@ -148,11 +148,11 @@ The `.volley/` directory (except `HANDOFF.md`) is gitignored, so review artifact
 
 | Skill | When to use it |
 |---|---|
-| `/volley:setup` | Once per machine — install and smoke-test |
+| `/volley:setup` | Once per repo — confirms bundled MCP and smoke-tests |
 | `/volley:doctor` | Something seems broken — run this first |
 | `/volley:status` | Check who holds the lock and for how long |
 | `/volley:unlock` | Clear a stuck lock after confirming it's stale |
 | `/volley:review-plan` | Get Codex's critique of a plan before implementing |
 | `/volley:review-pr <num>` | Get Codex's review of a GitHub PR diff |
 | `/volley:implement` | Hand a plan to Codex; spawns a visible terminal |
-| `/volley:review-code` | Claude reviews what Codex committed against the plan |
+| `/volley:review-code` | Claude reviews the changes Codex made against the plan |

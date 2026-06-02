@@ -37,7 +37,7 @@ If you've ever:
 
     You + Claude  ──/volley:implement───▶  Codex writes the code in
     (hands off, waits on the lock)          its own terminal tab and
-    You + Claude  ◀──── STATE released ───  commits as it goes
+    You + Claude  ◀──── STATE released ───  logs progress as it goes
     You + Claude  ──/volley:review-code──▶  Claude reviews the diff
 ```
 

@@ -6,7 +6,7 @@ Volley pairs Claude with a second assistant that holds the implementation lock w
 
 ## Seam 1 - The MCP bridge
 
-**Files involved:** `.mcp.json` (plugin root), `skills/review-plan/SKILL.md`, `skills/review-code/SKILL.md`, `skills/review-pr/SKILL.md`
+**Files involved:** `.mcp.json` (plugin root), `skills/review-plan/SKILL.md`, `skills/review-code/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, `skills/doctor/SKILL.md`
 
 The plugin's `.mcp.json` registers the Codex MCP server so Claude can call it in-session:
 
@@ -28,7 +28,7 @@ The three review skills call exactly two MCP tools from this server:
 
 `skills/review-code/SKILL.md` does not call Codex via MCP at all - it is a Claude-only inline review of the diff.
 
-**To swap:** If your replacement assistant exposes an MCP server, register it in `.mcp.json` under a new key (e.g. `"gemini"`) and update the two tool references in `skills/review-plan/SKILL.md` and `skills/review-pr/SKILL.md` from `mcp__codex__codex` / `mcp__codex__codex-reply` to the equivalent tools your server exposes. If your assistant has no MCP server, see the fallback note under "What a second assistant must provide" below.
+**To swap:** If your replacement assistant exposes an MCP server, register it in `.mcp.json` under a new key (e.g. `"gemini"`) and update the tool references in `skills/review-plan/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, and `skills/doctor/SKILL.md` from `mcp__codex__codex` / `mcp__codex__codex-reply` to the equivalent tools your server exposes. If your assistant has no MCP server, see the fallback note under "What a second assistant must provide" below.
 
 ---
 
@@ -122,7 +122,7 @@ to:
 local ps_cmd="Get-Content -Raw '${escaped}' | gemini"
 ```
 
-Apply the equivalent one-line change in `scripts/platforms/macos.sh` and `scripts/platforms/linux.sh` (each has a `cat '$prompt_file' | codex exec` line).
+Apply the equivalent one-line change in `scripts/platforms/macos.sh` and `scripts/platforms/linux.sh` (each has a `cat '$prompt_file' | codex exec` line — note that exact quoting differs per handler; e.g. linux/tmux use `printf %q` to produce a quoted path before piping).
 
 ### Step 3 - Update skill prose
 
