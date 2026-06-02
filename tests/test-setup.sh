@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-cd "$TMPDIR"
+cd "$TMPDIR" || exit 1
 mkdir -p scripts/templates
 cp "$REPO_ROOT/scripts/lib.sh" scripts/lib.sh
 cp "$REPO_ROOT/scripts/templates/HANDOFF.md" scripts/templates/HANDOFF.md

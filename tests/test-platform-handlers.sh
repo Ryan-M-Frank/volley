@@ -21,6 +21,7 @@ cat > "$TMPDIR/codex-received.txt"
 EOF
   chmod +x "$BIN/codex"
 
+  # shellcheck disable=SC1090
   ( . "$ROOT/scripts/platforms/tmux.sh"
     PATH="$BIN:$PATH" spawn_tmux "$PROMPT" "volley:codex" >/dev/null )
   for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$TMPDIR/codex-received.txt" ] && break; sleep 0.3; done
@@ -35,6 +36,7 @@ fi
 # Guarded so the suite passes incrementally as each handler lands (Tasks 4-6).
 for h in macos linux tmux; do
   [ -f "$ROOT/scripts/platforms/$h.sh" ] || { echo "SKIP: $h.sh not present yet"; continue; }
+  # shellcheck disable=SC1090
   ( . "$ROOT/scripts/platforms/$h.sh"
     PATH="/nonexistent" "spawn_$h" "$PROMPT" "t" ) >/dev/null 2>&1
   rc=$?
