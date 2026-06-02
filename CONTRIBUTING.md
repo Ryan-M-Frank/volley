@@ -55,7 +55,7 @@ Each platform handler is a sourced bash file that exposes exactly one function: 
 Open `scripts/spawn-codex.sh`. The handler is sourced automatically via the `HANDLER_FILE` pattern — no switch statement to update. The dispatcher computes:
 
 ```bash
-HANDLER_FILE="${DUO_DIR}/platforms/${PLATFORM}.sh"
+HANDLER_FILE="${VOLLEY_DIR}/platforms/${PLATFORM}.sh"
 . "$HANDLER_FILE"
 "spawn_${PLATFORM}" "$PROMPT_FILE" "$TITLE"
 ```

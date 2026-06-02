@@ -32,7 +32,7 @@ TITLE="${2:-volley:codex}"
 
 [ -f "$PROMPT_FILE" ] || { echo "ERROR: prompt file not found: $PROMPT_FILE" >&2; exit 1; }
 
-DUO_DIR="$(cd "$(dirname "$0")" && pwd)"
+VOLLEY_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 detect_platform() {
   case "$(uname -s)" in
@@ -58,9 +58,9 @@ if [ "$PLATFORM" = "unsupported" ]; then
   exit 2
 fi
 
-HANDLER_FILE="${DUO_DIR}/platforms/${PLATFORM}.sh"
+HANDLER_FILE="${VOLLEY_DIR}/platforms/${PLATFORM}.sh"
 if [ ! -f "$HANDLER_FILE" ]; then
-  available=$(ls "${DUO_DIR}/platforms" 2>/dev/null | tr '\n' ' ')
+  available=$(ls "${VOLLEY_DIR}/platforms" 2>/dev/null | tr '\n' ' ')
   echo "ERROR: no handler for platform '$PLATFORM' (expected $HANDLER_FILE). Available: ${available:-none}" >&2
   exit 3
 fi

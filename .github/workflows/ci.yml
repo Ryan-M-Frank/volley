@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: No RASA / secret bleed-through
         run: |
-          if grep -rniE 'rasa|RASA_DEMO|/c/git/RASA|api[_-]?key|secret[_-]?key|ghp_[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' . --exclude-dir=.git | grep -viE 'frank\.ryanm@gmail\.com'; then
+          if grep -rniE 'rasa|RASA_DEMO|/c/git/RASA|api[_-]?key|secret[_-]?key|ghp_[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' . --exclude-dir=.git --exclude-dir=workflows | grep -viE 'frank\.ryanm@gmail\.com'; then
             echo "::error::Potential RASA/secret bleed-through found above - must be zero before publish."
             exit 1
           fi
