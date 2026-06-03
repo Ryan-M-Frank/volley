@@ -76,7 +76,7 @@ volley_lock_acquire() {
   local dir=$1 actor=$2 task=$3 pid=$4
   local lockd="${dir}/lock.d"
   if mkdir "$lockd" 2>/dev/null; then
-    local token="${actor}:${pid}:$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local token; token="${actor}:${pid}:$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf '%s\n' "$token" > "${lockd}/owner"
     volley_state_write "${dir}/STATE" "$actor" "$task" "$pid"
     printf '%s\n' "$token"

@@ -29,7 +29,7 @@ spawn_windows() {
   # Stream the file through stdin to `codex exec`. Only this short literal
   # command line is constructed by CreateProcess; the prompt content itself
   # is read by Get-Content and piped, so no argv length limit applies.
-  local ps_cmd="Get-Content -Raw '${escaped}' | codex exec -s ${VOLLEY_CODEX_SANDBOX}"
+  local ps_cmd="Get-Content -Raw '${escaped}' | codex exec -s ${VOLLEY_CODEX_SANDBOX:-workspace-write}"
 
   # -w 0 targets the current wt window, nt opens a new tab. -NoExit keeps the
   # tab open after Codex finishes so the user can read the final output.
