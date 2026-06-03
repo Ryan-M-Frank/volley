@@ -68,6 +68,39 @@ volley_state_pid_alive() {
   fi
 }
 
+# Atomically acquire the repo lock. Echoes an owner token and returns 0 on
+# success; returns 1 if the lock is already held by someone else. mkdir is
+# atomic on POSIX + Windows filesystems, so exactly one concurrent caller wins.
+# Usage: token=$(volley_lock_acquire <statedir> <actor> <task> <pid>) || handle-held
+volley_lock_acquire() {
+  local dir=$1 actor=$2 task=$3 pid=$4
+  local lockd="${dir}/lock.d"
+  if mkdir "$lockd" 2>/dev/null; then
+    local token="${actor}:${pid}:$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '%s\n' "$token" > "${lockd}/owner"
+    volley_state_write "${dir}/STATE" "$actor" "$task" "$pid"
+    printf '%s\n' "$token"
+    return 0
+  fi
+  return 1
+}
+
+# Release the lock ONLY if the caller's token matches the recorded owner
+# (so a stale-clear can never delete a different, freshly-acquired lock).
+# Usage: volley_lock_release <statedir> <token>
+volley_lock_release() {
+  local dir=$1 token=$2
+  local lockd="${dir}/lock.d"
+  [ -d "$lockd" ] || return 0
+  local owner
+  owner=$(cat "${lockd}/owner" 2>/dev/null)
+  if [ "$owner" = "$token" ]; then
+    rm -rf "$lockd"
+    return 0
+  fi
+  return 1
+}
+
 # Render a Next-step block. Required at the end of every /volley:* command output.
 # Usage: volley_next_step <next-command> <reason>
 # For multi-option, call volley_next_step_options instead.
