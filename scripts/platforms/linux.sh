@@ -6,7 +6,7 @@
 spawn_linux() {
   local prompt_file="$1" title="$2"
   local qpath; qpath=$(printf %q "$prompt_file")
-  local inner="cat ${qpath} | codex exec; exec bash"
+  local inner="cat ${qpath} | codex exec -s ${VOLLEY_CODEX_SANDBOX}; exec bash"
 
   if command -v gnome-terminal >/dev/null; then
     gnome-terminal --title "${title}" -- bash -c "${inner}" &

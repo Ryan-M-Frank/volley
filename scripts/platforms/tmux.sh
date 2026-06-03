@@ -16,7 +16,7 @@ spawn_tmux() {
   local session="volley_${title//[^a-zA-Z0-9_-]/_}"
 
   local qpath; qpath=$(printf %q "$prompt_file")
-  tmux new-session -d -s "$session" "cat ${qpath} | codex exec; exec bash"
+  tmux new-session -d -s "$session" "cat ${qpath} | codex exec -s ${VOLLEY_CODEX_SANDBOX}; exec bash"
 
   echo "tmux:${session}"
 }

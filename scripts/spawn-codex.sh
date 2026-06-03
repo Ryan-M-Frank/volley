@@ -30,6 +30,17 @@ set -euo pipefail
 PROMPT_FILE="${1:?prompt file path required}"
 TITLE="${2:-volley:codex}"
 
+# Sandbox mode for the spawned `codex exec`. workspace-write lets Codex write the
+# handshake marker, progress log, STATE file, and source (all under the repo root)
+# while confining writes to the workspace. Override to danger-full-access when a
+# task needs network (uncached package restore), or read-only for a dry run.
+: "${VOLLEY_CODEX_SANDBOX:=workspace-write}"
+case "$VOLLEY_CODEX_SANDBOX" in
+  read-only|workspace-write|danger-full-access) ;;
+  *) echo "ERROR: VOLLEY_CODEX_SANDBOX must be read-only|workspace-write|danger-full-access (got '$VOLLEY_CODEX_SANDBOX')" >&2; exit 2 ;;
+esac
+export VOLLEY_CODEX_SANDBOX
+
 [ -f "$PROMPT_FILE" ] || { echo "ERROR: prompt file not found: $PROMPT_FILE" >&2; exit 1; }
 
 VOLLEY_DIR="$(cd "$(dirname "$0")" && pwd)"
