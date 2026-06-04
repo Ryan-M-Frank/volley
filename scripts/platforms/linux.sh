@@ -5,8 +5,13 @@
 
 spawn_linux() {
   local prompt_file="$1" title="$2"
-  local qpath; qpath=$(printf %q "$prompt_file")
-  local inner="cat ${qpath} | codex exec -s ${VOLLEY_CODEX_SANDBOX:-workspace-write}; exec bash"
+  local prompt_abs repo_root
+  prompt_abs=$(cd "$(dirname "$prompt_file")" && pwd)/$(basename "$prompt_file")
+  repo_root=$(pwd)
+  local qpath qrepo
+  qpath=$(printf %q "$prompt_abs")
+  qrepo=$(printf %q "$repo_root")
+  local inner="cat ${qpath} | codex exec --sandbox ${VOLLEY_CODEX_SANDBOX:-workspace-write} -C ${qrepo} -c approval_policy=never; exec bash"
 
   if command -v gnome-terminal >/dev/null; then
     gnome-terminal --title "${title}" -- bash -c "${inner}" &

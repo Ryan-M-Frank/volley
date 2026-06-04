@@ -15,8 +15,13 @@ spawn_tmux() {
 
   local session="volley_${title//[^a-zA-Z0-9_-]/_}"
 
-  local qpath; qpath=$(printf %q "$prompt_file")
-  tmux new-session -d -s "$session" "cat ${qpath} | codex exec -s ${VOLLEY_CODEX_SANDBOX:-workspace-write}; exec bash"
+  local prompt_abs repo_root
+  prompt_abs=$(cd "$(dirname "$prompt_file")" && pwd)/$(basename "$prompt_file")
+  repo_root=$(pwd)
+  local qpath qrepo
+  qpath=$(printf %q "$prompt_abs")
+  qrepo=$(printf %q "$repo_root")
+  tmux new-session -d -s "$session" "cat ${qpath} | codex exec --sandbox ${VOLLEY_CODEX_SANDBOX:-workspace-write} -C ${qrepo} -c approval_policy=never; exec bash"
 
   echo "tmux:${session}"
 }

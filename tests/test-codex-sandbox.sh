@@ -1,16 +1,32 @@
 #!/usr/bin/env bash
-# Regression for the read-only-sandbox bug: spawned `codex exec` must always pass -s.
+# Regression for the sandbox + approval-policy + cwd bug: every spawned
+# `codex exec` must carry --sandbox, -c approval_policy=never, and -C.
+#
+# NOTE: CI can only do static grep checks here. A real end-to-end Codex launch
+# (verifying the terminal actually opens and Codex runs) requires a manual run
+# on each platform — grep cannot prove a live invocation.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PASS=0; FAIL=0; pass(){ echo "PASS: $1"; PASS=$((PASS+1)); }; fail(){ echo "FAIL: $1"; FAIL=$((FAIL+1)); }
 
-# (1) No platform handler may invoke a BARE `codex exec` (must be followed by -s).
+# (1) Every platform handler's codex exec line must carry ALL three required flags:
+#     --sandbox, approval_policy=never, and -C.
 # Strip comment lines (lines where first non-whitespace char is #) before checking.
 for h in "$ROOT"/scripts/platforms/*.sh; do
-  if grep -nE 'codex exec' "$h" | grep -vE ':[[:space:]]*#' | grep -qvE 'codex exec -s'; then
-    fail "$(basename "$h"): bare 'codex exec' without -s"
+  name=$(basename "$h")
+  code_lines=$(grep -nE 'codex exec' "$h" | grep -vE ':[[:space:]]*#')
+  if [ -z "$code_lines" ]; then
+    fail "${name}: no 'codex exec' line found"
+    continue
+  fi
+  if ! printf '%s\n' "$code_lines" | grep -q -- '--sandbox'; then
+    fail "${name}: codex exec missing --sandbox"
+  elif ! printf '%s\n' "$code_lines" | grep -q 'approval_policy=never'; then
+    fail "${name}: codex exec missing -c approval_policy=never"
+  elif ! printf '%s\n' "$code_lines" | grep -q -- ' -C '; then
+    fail "${name}: codex exec missing -C repo-root"
   else
-    pass "$(basename "$h"): codex exec carries -s"
+    pass "${name}: codex exec carries --sandbox, approval_policy=never, and -C"
   fi
 done
 
