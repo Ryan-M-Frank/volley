@@ -13,6 +13,8 @@
 - Scripts + tests (REFRACTORED): the `feature/copair-spawn-codex-refactor` branch in `C:\git\RASA\RASA_DEMO-copair` (read via `git show feature/copair-spawn-codex-refactor:<path>`). Do NOT use the `master`/origin working-tree copies - they predate the #108 dispatcher refactor.
 - README draft: `.duo/README-DRAFT.md` (in RASA_DEMO-copair)
 
+> **Historical paths:** the absolute paths above (`C:\git\RASA\RASA_DEMO-copair`, `/c/git/RASA/...`) point to the author's machine and source tree at extraction time. They are kept as provenance for this completed plan, not as current Volley locations.
+
 **Two naming families to eliminate (AC1 gate):** both `duo`/`DUO`/`.duo`/`duo_`/`duo-` AND `copair`/`COPAIR` (the dispatcher uses `COPAIR_PLATFORM`). The grep gate checks both.
 
 **Namespacing rule:** plugin skills are invoked `/<plugin>:<skill>`. The plugin is `volley`, so skill folders DROP the prefix: `duo-setup/` → `setup/` (invoked `/volley:setup`). Do NOT name them `volley-setup/` (that yields `/volley:volley-setup`).

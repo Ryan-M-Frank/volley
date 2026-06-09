@@ -8,7 +8,7 @@
 
 **Tech Stack:** Bash (lib + resolver + skill helpers), `jq` (JSON parsing — single parser path), Markdown (skills/docs), the existing Codex MCP (`mcp__codex__codex`) + per-OS spawn handlers.
 
-**Spec:** `docs/superpowers/specs/2026-06-02-volley-configurable-roles-design.md` (hardened via 2 Codex review rounds). Work happens in `C:\git\volley` (the public repo). Never reintroduce `duo`/`copair`. Every new `.sh` must pass `shellcheck -S warning` and the suite must stay green via `bash tests/run-all.sh`.
+**Spec:** `docs/design/2026-06-02-volley-configurable-roles-design.md` (hardened via 2 Codex review rounds). Work happens in `C:\git\volley` (the public repo). Never reintroduce `duo`/`copair`. Every new `.sh` must pass `shellcheck -S warning` and the suite must stay green via `bash tests/run-all.sh`.
 
 **Staging:** 6 phases, each independently shippable. Phase 1 is inert (config readable, behavior unchanged). Phase 3 is the first user-visible capability (route code review to Codex). Ship a point release at the end of any phase.
 
