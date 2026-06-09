@@ -32,13 +32,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: No RASA / secret bleed-through
+      - name: No secret bleed-through (whole repo)
         run: |
-          if grep -rniE 'rasa|RASA_DEMO|/c/git/RASA|api[_-]?key|secret[_-]?key|ghp_[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' . --exclude-dir=.git --exclude-dir=workflows | grep -viE 'frank\.ryanm@gmail\.com'; then
-            echo "::error::Potential RASA/secret bleed-through found above - must be zero before publish."
+          if grep -rniE 'api[_-]?key|secret[_-]?key|ghp_[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' . --exclude-dir=.git --exclude-dir=workflows | grep -viE 'frank\.ryanm@gmail\.com'; then
+            echo "::error::Potential secret bleed-through found above - must be zero before publish."
             exit 1
           fi
-          echo "leak scan clean"
+          echo "secret scan clean"
+      - name: No RASA bleed-through (design history exempt)
+        run: |
+          # docs/design/ are point-in-time design records that intentionally
+          # document the RASA -> Volley extraction, so the RASA name-strings are
+          # allowed there. Secret patterns are still scanned everywhere above.
+          if grep -rniE 'rasa|RASA_DEMO|/c/git/RASA' . --exclude-dir=.git --exclude-dir=workflows --exclude-dir=design | grep -viE 'frank\.ryanm@gmail\.com'; then
+            echo "::error::Potential RASA bleed-through found above - must be zero before publish (docs/design/ is exempt)."
+            exit 1
+          fi
+          echo "rasa scan clean"
   validate:
     runs-on: ubuntu-latest
     steps:
