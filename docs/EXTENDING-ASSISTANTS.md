@@ -6,7 +6,7 @@ Volley pairs Claude with a second assistant that holds the implementation lock w
 
 ## Seam 1 - The MCP bridge
 
-**Files involved:** `.mcp.json` (plugin root), `skills/review-plan/SKILL.md`, `skills/review-code/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, `skills/doctor/SKILL.md`
+**Files involved:** `.mcp.json` (plugin root), `skills/review-plan/SKILL.md`, `skills/review-code/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, `skills/diagnose/SKILL.md`
 
 The plugin's `.mcp.json` registers the Codex MCP server so Claude can call it in-session:
 
@@ -28,7 +28,7 @@ The three review skills call exactly two MCP tools from this server:
 
 `skills/review-code/SKILL.md` does not call Codex via MCP at all - it is a Claude-only inline review of the diff.
 
-**To swap:** If your replacement assistant exposes an MCP server, register it in `.mcp.json` under a new key (e.g. `"gemini"`) and update the tool references in `skills/review-plan/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, and `skills/doctor/SKILL.md` from `mcp__codex__codex` / `mcp__codex__codex-reply` to the equivalent tools your server exposes. If your assistant has no MCP server, see the fallback note under "What a second assistant must provide" below.
+**To swap:** If your replacement assistant exposes an MCP server, register it in `.mcp.json` under a new key (e.g. `"gemini"`) and update the tool references in `skills/review-plan/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, and `skills/diagnose/SKILL.md` from `mcp__codex__codex` / `mcp__codex__codex-reply` to the equivalent tools your server exposes. If your assistant has no MCP server, see the fallback note under "What a second assistant must provide" below.
 
 ---
 
@@ -63,13 +63,13 @@ The authoritative liveness signal is the `.volley/CODEX-STARTED-<NONCE>` handsha
 
 ## Seam 3 - Skill prose and labels
 
-**Files involved:** `skills/setup/SKILL.md`, `skills/implement/SKILL.md`, `skills/doctor/SKILL.md`
+**Files involved:** `skills/setup/SKILL.md`, `skills/implement/SKILL.md`, `skills/diagnose/SKILL.md`
 
 These skills reference Codex by name in several places:
 
 - `skills/setup/SKILL.md`: version check (`codex --version`, minimum >= 0.129), MCP smoke test (invokes `mcp__codex__codex` with `prompt: "Reply with the single word: PONG"`), install remedy (`npm install -g @openai/codex`).
 - `skills/implement/SKILL.md`: the spawner call (`bash scripts/spawn-codex.sh`), the prompt it builds for Codex, and the tab title `"volley:codex"`.
-- `skills/doctor/SKILL.md`: checks `codex --version` and the `mcp__codex__codex` MCP tool.
+- `skills/diagnose/SKILL.md`: checks `codex --version` and the `mcp__codex__codex` MCP tool.
 
 **To swap:** Update the version check command and minimum version, the MCP smoke test tool name, the install remedy, and any `"Codex"` labels in the user-facing output. The spawner call (`spawn-codex.sh`) can be renamed or left as-is - the filename is internal.
 
@@ -140,13 +140,13 @@ Run: `gemini --version` — must succeed.
 
 Update the install remedy from `npm install -g @openai/codex` to `npm install -g @google/gemini-cli`.
 
-In `skills/doctor/SKILL.md`, change the two `codex --version` and `mcp__codex__codex` references to `gemini --version` and `mcp__gemini__gemini` (or omit the MCP check if no MCP server is registered).
+In `skills/diagnose/SKILL.md`, change the two `codex --version` and `mcp__codex__codex` references to `gemini --version` and `mcp__gemini__gemini` (or omit the MCP check if no MCP server is registered).
 
 In `skills/implement/SKILL.md`, update the tab title from `"volley:codex"` to `"volley:gemini"` (cosmetic only).
 
-### Step 4 - Verify with /volley:doctor
+### Step 4 - Verify with /volley:diagnose
 
-After making those changes, `/volley:doctor` will check:
+After making those changes, `/volley:diagnose` will check:
 
 - `gemini --version` (step 1) - PASS if the CLI is installed
 - `mcp__gemini__gemini` tool available (step 2) - PASS or WARN depending on whether you registered an MCP server
@@ -181,7 +181,7 @@ assistant_spawn(prompt_file, title)
 assistant_mcp_server_name()
 
 # Run the version check and print "[PASS] ..." or "[FAIL] ..." to stdout.
-# Used by /volley:doctor and /volley:setup.
+# Used by /volley:diagnose and /volley:setup.
 assistant_version_check()
 ```
 

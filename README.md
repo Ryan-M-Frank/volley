@@ -74,7 +74,7 @@ Once installed, the skills below are available in any repo.
 | **`/volley:setup`** | One-time: verifies Codex, confirms the bundled MCP is reachable, scaffolds `.volley/` | (smoke test) |
 | **`/volley:status`** | Inspect the lock state, lock age, stale-PID detection | (local only) |
 | **`/volley:unlock`** | Force-clear a stuck STATE lock (escape hatch) | (local only) |
-| **`/volley:doctor`** | Health-check: Codex CLI, MCP reachability, platform terminal, and lock state | (local only) |
+| **`/volley:diagnose`** | Health-check: Codex CLI, MCP reachability, platform terminal, and lock state | (local only) |
 | **`/volley:review-plan`** | Hand a plan document to Codex for review; output to `.volley/PLAN-REVIEW.md` | **MCP** (fast) |
 | **`/volley:review-pr <num>`** | Hand a GitHub PR diff to Codex for review; output to `.volley/PR-REVIEW-<num>.md` | **MCP** (fast) |
 | **`/volley:implement`** | Hand a plan to Codex; Codex runs in a visible terminal tab while Claude waits | **Terminal spawn** (long-running) |
@@ -99,7 +99,7 @@ Two transports for two latency profiles. Short ops (plan review, PR review) go t
 | `/volley:setup` | ✅ | ✅ | ✅ |
 | `/volley:status` | ✅ | ✅ | ✅ |
 | `/volley:unlock` | ✅ | ✅ | ✅ |
-| `/volley:doctor` | ✅ | ✅ | ✅ |
+| `/volley:diagnose` | ✅ | ✅ | ✅ |
 | `/volley:review-plan` | ✅ | ✅ | ✅ |
 | `/volley:review-pr` | ✅ | ✅ | ✅ |
 | `/volley:review-code` | ✅ | ✅ | ✅ |
