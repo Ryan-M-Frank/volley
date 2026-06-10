@@ -32,10 +32,10 @@ Setup verifies that Codex is installed, confirms the bundled Codex MCP server is
 ## 2. Verify everything is wired up
 
 ```
-/volley:doctor
+/volley:diagnose
 ```
 
-Doctor checks: Codex binary on PATH, MCP reachability, platform terminal, plugin assets, and (if you're in a repo) STATE file integrity. Fix any items it flags before proceeding.
+Diagnose checks: Codex binary on PATH, MCP reachability, platform terminal, plugin assets, and (if you're in a repo) STATE file integrity. Fix any items it flags before proceeding.
 
 ---
 
@@ -149,7 +149,7 @@ The `.volley/` directory (except `HANDOFF.md`) is gitignored, so review artifact
 | Skill | When to use it |
 |---|---|
 | `/volley:setup` | Once per repo — confirms bundled MCP and smoke-tests |
-| `/volley:doctor` | Something seems broken — run this first |
+| `/volley:diagnose` | Something seems broken — run this first |
 | `/volley:status` | Check who holds the lock and for how long |
 | `/volley:unlock` | Clear a stuck lock after confirming it's stale |
 | `/volley:review-plan` | Get Codex's critique of a plan before implementing |

@@ -1,9 +1,9 @@
 ---
-name: doctor
+name: diagnose
 description: Diagnose the Volley environment in one shot - Codex CLI, the bundled MCP bridge, the platform terminal, and the per-repo lock state. Use when setup misbehaves or before starting a session in a new repo.
 ---
 
-# /volley:doctor
+# /volley:diagnose
 
 One-shot diagnosis of whether Volley is wired up correctly here. Run each check, print a `[PASS]`/`[FAIL]`/`[WARN]` line, and end with a remediation list for anything not green.
 
@@ -48,4 +48,4 @@ One-shot diagnosis of whether Volley is wired up correctly here. Run each check,
    fi
    ```
 
-6. **Summary.** Print a final `Volley doctor: N passed, M warnings, K failures` line and, for each FAIL/WARN, the one-line remedy.
+6. **Summary.** Print a final `Volley diagnose: N passed, M warnings, K failures` line and, for each FAIL/WARN, the one-line remedy.

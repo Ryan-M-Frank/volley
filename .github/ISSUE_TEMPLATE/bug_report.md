@@ -18,12 +18,12 @@ labels: bug
 **Shell:**
 <!-- e.g. Git Bash 2.44, zsh 5.9, bash 5.2 -->
 
-## Doctor output
+## Diagnose output
 
-<!-- Run /volley:doctor inside Claude Code and paste the full output here -->
+<!-- Run /volley:diagnose inside Claude Code and paste the full output here -->
 
 ```
-paste /volley:doctor output here
+paste /volley:diagnose output here
 ```
 
 ## Steps to reproduce
