@@ -115,10 +115,16 @@ cat > /dev/null
 EOF
   chmod +x "$BIN/codex"
   PROMPT="$TMPDIR/prompt.txt"; echo "hi" > "$PROMPT"
+  # Unique title so this never collides with test-platform-handlers.sh's
+  # "volley:codex" session, and kill our session afterward so we leave nothing
+  # running for the next test file.
+  TMUX_TITLE="volley:cont-flagtest"
+  TMUX_SESSION="volley_${TMUX_TITLE//[^a-zA-Z0-9_-]/_}"
+  trap 'tmux kill-session -t "$TMUX_SESSION" 2>/dev/null; rm -rf "$TMPDIR"' EXIT
   (
     . "$ROOT/scripts/platforms/tmux.sh"
     PATH="$BIN:$PATH" VOLLEY_CODEX_FLAGS="-m gpt-5.6-sol -c model_reasoning_effort=high" \
-      spawn_tmux "$PROMPT" "volley:codex" >/dev/null
+      spawn_tmux "$PROMPT" "$TMUX_TITLE" >/dev/null
   )
   for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$TMPDIR/codex-argv.txt" ] && break; sleep 0.3; done
   ARGV=$(cat "$TMPDIR/codex-argv.txt" 2>/dev/null || echo "")
