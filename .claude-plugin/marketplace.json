@@ -6,7 +6,7 @@
     {
       "name": "volley",
       "source": "./",
-      "version": "0.1.5",
+      "version": "0.2.0",
       "description": "Two AI coding assistants in one repo, behind a hard lock."
     }
   ]
