@@ -45,6 +45,20 @@ export VOLLEY_CODEX_SANDBOX
 
 VOLLEY_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Model / reasoning selection (v0.2). The caller (skills/implement) resolves the
+# implementation role's model + effort from config and passes them as env vars.
+# We validate them here (fail closed on anything that isn't a bare identifier)
+# and export a single flag string the platform handlers splice into `codex exec`.
+# Unset / "inherit" => no flag => Codex uses its own default. Never silently
+# substitute a model.
+# shellcheck source=/dev/null
+. "${VOLLEY_DIR}/lib.sh"
+if ! VOLLEY_CODEX_FLAGS="$(volley_codex_flags "${VOLLEY_CODEX_MODEL:-}" "${VOLLEY_CODEX_EFFORT:-}")"; then
+  echo "ERROR: invalid VOLLEY_CODEX_MODEL/VOLLEY_CODEX_EFFORT - see message above. Fix the model/reasoningEffort in .volley/config.json or .volley/local.json." >&2
+  exit 2
+fi
+export VOLLEY_CODEX_FLAGS
+
 detect_platform() {
   case "$(uname -s)" in
     Darwin*) echo macos ;;

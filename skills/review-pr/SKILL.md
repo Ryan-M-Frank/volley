@@ -59,7 +59,7 @@ Codex reviews a PR. You decide whether to post the review as a comment.
    Keep it under 800 words.
    ```
 
-5. **Invoke Codex via MCP.** Same tool as `/volley:review-plan`. Handle errors the same way.
+5. **Invoke Codex via MCP.** Same tool and rules as `/volley:review-plan` step 6: resolve `codex.review.model`/`reasoningEffort` from `.volley/config.json` (+ `local.json` overrides); pass `sandbox: "read-only"`, `approval-policy: "never"`, `cwd: <canonical git root>`, and `model`/`config.model_reasoning_effort` when not `inherit`. Persist the returned `threadId` to `.volley/local.json` under `roles.prReview`; use `mcp__codex__codex-reply` only for follow-ups within this exchange. Across a restart, rehydrate from files rather than reusing the id over MCP. Surface an unavailable-model/bad-effort error verbatim - never silently substitute. Handle MCP-unreachable errors the same way (restart + re-run `/volley:setup`).
 
 6. **Write to `.volley/PR-REVIEW-<num>.md`.**
    ```markdown

@@ -48,4 +48,22 @@ One-shot diagnosis of whether Volley is wired up correctly here. Run each check,
    fi
    ```
 
-6. **Summary.** Print a final `Volley diagnose: N passed, M warnings, K failures` line and, for each FAIL/WARN, the one-line remedy.
+6. **Continuity + model config (v0.2).** Non-mutating, and **no model turn unless the user explicitly asks for a live model probe.**
+   - **Config parses & validates.** Read `.volley/config.json` (parse yourself - no jq). PASS if valid JSON with a known `version`; WARN if absent (= defaults in effect); FAIL if present but malformed or unknown `version`. Report the resolved review/implementation `model` + `reasoningEffort` (show `inherit` as "Codex default"). Do **not** call a model to check availability here - note that model validity is confirmed by the `/volley:setup` smoke call (or an opt-in `--live` probe).
+   - **Repository identity.** Compare `.volley/local.json` `repository` to the live repo:
+     ```bash
+     . "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh"
+     if [ -f .volley/local.json ]; then
+       # extract stored root/remote in-host (JSON), then:
+       volley_repo_identity_matches "<stored_root>" "<stored_remote>" \
+         && echo "[PASS] repo identity matches live checkout" \
+         || echo "[WARN] repo identity mismatch - stored session IDs will be ignored (fresh session + file rehydration)"
+     else
+       echo "[INFO] no .volley/local.json yet - run /volley:setup"
+     fi
+     ```
+   - **Context files.** For each `context.required` file, PASS if present / FAIL if missing (names the file). For `context.optional`, list present vs skipped.
+   - **Saved-session integrity.** If `.volley/local.json` has role thread/session IDs, report them as present (never print secrets); WARN if the file is unreadable/corrupt.
+   - **Managed checkpoint.** PASS if `.volley/CHECKPOINT.md` exists and still contains both `volley:managed` markers; WARN otherwise.
+
+7. **Summary.** Print a final `Volley diagnose: N passed, M warnings, K failures` line and, for each FAIL/WARN, the one-line remedy.

@@ -130,3 +130,109 @@ volley_next_step_done() {
   echo "─── Next step ───"
   echo "None - $message"
 }
+
+# ─────────────────────────────────────────────────────────────────────────
+# Continuity + model-selection helpers (v0.2)
+#
+# Config is parsed by the host (Claude), which reads JSON natively - these
+# bash helpers only ever receive already-extracted SCALARS (a model name, a
+# reasoning level, a stored root/remote). That is deliberate: it keeps a JSON
+# parser (jq) off the runtime dependency list. See volley-continuity-review.md
+# findings F5/F7.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Safe token charset for any value interpolated into a codex command line.
+# Model names and reasoning levels are bare identifiers; anything outside this
+# set is rejected so untrusted config can never inject shell or argv.
+VOLLEY_TOKEN_RE='^[A-Za-z0-9._-]+$'
+
+# Return 0 if the value means "use Codex's own default" (unset or "inherit").
+# Usage: volley_is_inherit "$model"
+volley_is_inherit() {
+  local v="${1:-}"
+  [ -z "$v" ] || [ "$v" = "inherit" ]
+}
+
+# Validate a model/effort token against VOLLEY_TOKEN_RE.
+# Returns non-zero with a clear message on bad input; echoes nothing.
+# Usage: volley_validate_token "$value" "model"
+volley_validate_token() {
+  local value=$1 name=$2
+  if ! printf '%s' "$value" | grep -Eq "$VOLLEY_TOKEN_RE"; then
+    echo "ERROR: $name '$value' is not a bare identifier ([A-Za-z0-9._-]); refusing to interpolate into a codex command." >&2
+    return 1
+  fi
+  return 0
+}
+
+# Build the codex model/effort flag fragment for `codex exec` / the MCP config.
+# "inherit"/empty => that flag is omitted (Codex uses its own default).
+# Only validated tokens are emitted, so literal insertion into a command
+# string is safe on every platform (no spaces/quotes possible).
+# Echoes e.g.:  -m gpt-5.6-sol -c model_reasoning_effort=high
+# Usage: flags=$(volley_codex_flags "$model" "$effort") || handle-error
+volley_codex_flags() {
+  local model="${1:-}" effort="${2:-}"
+  local out=""
+  if ! volley_is_inherit "$model"; then
+    volley_validate_token "$model" "model" || return 1
+    out="-m $model"
+  fi
+  if ! volley_is_inherit "$effort"; then
+    volley_validate_token "$effort" "reasoningEffort" || return 1
+    out="${out:+$out }-c model_reasoning_effort=$effort"
+  fi
+  printf '%s' "$out"
+}
+
+# Canonical git root for a directory (default: cwd). Empty + non-zero if the
+# directory is not inside a git repo.
+# Usage: root=$(volley_repo_root [dir])
+volley_repo_root() {
+  local dir="${1:-.}"
+  git -C "$dir" rev-parse --show-toplevel 2>/dev/null
+}
+
+# Origin remote URL for a directory (default: cwd). Empty if no origin remote.
+# Usage: remote=$(volley_repo_remote [dir])
+volley_repo_remote() {
+  local dir="${1:-.}"
+  git -C "$dir" remote get-url origin 2>/dev/null
+}
+
+# Guard against cross-project resume: does stored repo identity match the live
+# repo? A copied or stale local.json from another checkout must NOT be able to
+# resume this repo's (or another repo's) session. Path separators are
+# normalized so C:\git\x and C:/git/x compare equal on Windows.
+# Remote is compared only when BOTH sides have one (a fresh local clone with no
+# origin should still match on root).
+# Usage: volley_repo_identity_matches <stored_root> <stored_remote> [dir]
+# Returns 0 on match, non-zero on mismatch.
+volley_repo_identity_matches() {
+  local stored_root=$1 stored_remote=$2 dir="${3:-.}"
+  local live_root live_remote
+  live_root=$(volley_repo_root "$dir") || return 1
+  [ -n "$live_root" ] || return 1
+  live_remote=$(volley_repo_remote "$dir")
+  local sr="${stored_root//\\//}" lr="${live_root//\\//}"
+  [ "$sr" = "$lr" ] || return 1
+  if [ -n "$stored_remote" ] && [ -n "$live_remote" ]; then
+    [ "$stored_remote" = "$live_remote" ] || return 1
+  fi
+  return 0
+}
+
+# Extract a session/thread id (UUID) from a codex `exec --json` JSONL stream
+# or file. Reads the first event that carries an id - Codex emits it in the
+# session_meta / session_configured event. Pure grep/sed, no jq.
+# Usage: sid=$(volley_session_id_from_jsonl <file>) || handle-error
+volley_session_id_from_jsonl() {
+  local file=$1
+  [ -f "$file" ] || { echo "ERROR: jsonl file not found: $file" >&2; return 2; }
+  local id
+  id=$(grep -oE '"(session_id|thread_id|threadId|conversationId)":"[0-9a-fA-F-]{36}"' "$file" \
+         | head -1 \
+         | sed -E 's/.*:"([0-9a-fA-F-]{36})".*/\1/')
+  [ -n "$id" ] || { echo "ERROR: no session/thread id found in $file" >&2; return 3; }
+  printf '%s' "$id"
+}

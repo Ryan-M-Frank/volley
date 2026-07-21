@@ -34,7 +34,10 @@ spawn_windows() {
   # -c approval_policy=never prevents interactive approval prompts in a
   #    non-interactive tab from blocking forever.
   # No `;` separator — wt treats `;` as an action delimiter.
-  local ps_cmd="Get-Content -Raw '${escaped}' | codex exec --sandbox ${VOLLEY_CODEX_SANDBOX:-workspace-write} -C '${cwd_escaped}' -c approval_policy=never"
+  # VOLLEY_CODEX_FLAGS (optional) carries validated `-m <model>` and
+  # `-c model_reasoning_effort=<level>` tokens built by the dispatcher. They are
+  # bare identifiers (see volley_validate_token), so unquoted insertion is safe.
+  local ps_cmd="Get-Content -Raw '${escaped}' | codex exec ${VOLLEY_CODEX_FLAGS:-} --sandbox ${VOLLEY_CODEX_SANDBOX:-workspace-write} -C '${cwd_escaped}' -c approval_policy=never"
 
   # -w 0 targets the current wt window, nt opens a new tab. -NoExit keeps the
   # tab open after Codex finishes so the user can read the final output.
