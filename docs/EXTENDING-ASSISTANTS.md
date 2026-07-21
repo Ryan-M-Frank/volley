@@ -50,6 +50,8 @@ and opens it in a new Windows Terminal tab.
 
 The authoritative liveness signal is the `.volley/CODEX-STARTED-<NONCE>` handshake file. Codex's prompt instructs it to create that file as its very first action; `skills/implement/SKILL.md` polls for it before flipping the STATE lock to `ACTIVE=codex`.
 
+**Model/reasoning selection (v0.2):** `skills/implement/SKILL.md` exports `VOLLEY_CODEX_MODEL` / `VOLLEY_CODEX_EFFORT`; `scripts/spawn-codex.sh` validates them (bare identifiers only - fail-closed) via `volley_codex_flags` in `scripts/lib.sh` and exports `VOLLEY_CODEX_FLAGS`, which each platform handler splices into `codex exec` right after the subcommand. If you swap in another assistant, map these to that tool's model/effort flags (e.g. Codex `-m <model> -c model_reasoning_effort=<level>`). Keep the validation - never interpolate raw config into the command line.
+
 **To swap:** In each platform handler, change the launched command from `codex exec` to your assistant's non-interactive "run this prompt against the working tree" CLI. Keep two things intact:
 
 1. **Stdin streaming.** Stream the prompt via stdin (or a temp file passed by path) rather than inline argv. Example substitutions:

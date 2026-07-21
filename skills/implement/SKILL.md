@@ -32,6 +32,7 @@ Hand the keys to Codex. Watch in another tab.
    # POSIX-style absolute paths - used by the orchestrator (Bash) for stat/poll.
    PLAN_PATH=$(realpath <plan>)
    HANDOFF_PATH=$(realpath .volley/HANDOFF.md)
+   CHECKPOINT_PATH=$(realpath .volley/CHECKPOINT.md)
    LOG_PATH=$(realpath .volley/IMPLEMENTATION-LOG.md)
    STATE_PATH=$(realpath .volley/STATE)
    STARTED_PATH=$(realpath .volley)/CODEX-STARTED-${NONCE}
@@ -41,6 +42,7 @@ Hand the keys to Codex. Watch in another tab.
    # /c/git/... are not understood by native file tools.
    PLAN_PATH_WIN=$(cygpath -w "$PLAN_PATH")
    HANDOFF_PATH_WIN=$(cygpath -w "$HANDOFF_PATH")
+   CHECKPOINT_PATH_WIN=$(cygpath -w "$CHECKPOINT_PATH")
    LOG_PATH_WIN=$(cygpath -w "$LOG_PATH")
    STATE_PATH_WIN=$(cygpath -w "$STATE_PATH")
    STARTED_PATH_WIN=$(cygpath -w "$STARTED_PATH")
@@ -60,6 +62,8 @@ Hand the keys to Codex. Watch in another tab.
    You are implementing the plan at <PLAN_PATH_WIN>.
 
    Acceptance criteria are in <HANDOFF_PATH_WIN>.
+   Cross-agent state / recent decisions are in <CHECKPOINT_PATH_WIN> (read it for
+   context; do NOT edit it - Volley manages that file).
 
    FIRST ACTION (do this before reading the plan): create an empty file at
    exactly this path:
@@ -68,7 +72,7 @@ Hand the keys to Codex. Watch in another tab.
    The path is unique to this run - do not reuse it from any prior session.
 
    Workflow:
-   1. Read the plan and the HANDOFF in full.
+   1. Read the plan, the HANDOFF, and the CHECKPOINT in full.
    2. Implement each task in order, following its TDD steps.
    3. Append a one-line entry to <LOG_PATH_WIN> after each task you complete:
       "<ISO timestamp>  task <N>  done"
@@ -92,11 +96,15 @@ Hand the keys to Codex. Watch in another tab.
    printf '%s\n' "$CODEX_PROMPT" > "$PROMPT_FILE"
    ```
 
-7. **Spawn the Codex tab.** The spawner takes a prompt-file path and pipes it through stdin to `codex exec`.
+7. **Resolve the implementation model/effort, then spawn the Codex tab.** Read `.volley/config.json` (parse it yourself; absent = defaults) and apply any `.volley/local.json` `modelOverrides.implementation`. Export the resolved values as env vars; the spawner validates them (fail-closed on non-identifier values) and splices `-m`/`-c model_reasoning_effort=` into `codex exec`. Leave them unset (or `inherit`) to use Codex's own default.
 
    ```bash
+   export VOLLEY_CODEX_MODEL="<resolved-or-unset>"     # omit/inherit => no -m
+   export VOLLEY_CODEX_EFFORT="<resolved-or-unset>"    # omit/inherit => no effort flag
    WT_PID=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/spawn-codex.sh" "$PROMPT_FILE" "volley:codex")
    ```
+
+   **Continuity (default `rehydrate`):** the spawned run starts fresh; the prompt (step 5) already rehydrates it from the plan, HANDOFF, and `.volley/CHECKPOINT.md`. This keeps the readable terminal tab. **Opt-in `resume-if-safe`** (config `codex.implementation.continuity`): capture the exact session id from the run with `codex exec --json | tee .volley/log-<NONCE>.jsonl`, extract it via `volley_session_id_from_jsonl`, and store it in `.volley/local.json` under `roles.implementation.sessionId`. On the next implement, if `volley_repo_identity_matches` confirms the stored `repository` identity equals the live repo, resume with `codex exec resume <sessionId> -C <root>` - **never `--last`, never `--all`**. On any identity mismatch or missing/incompatible session, discard the id, start fresh, rehydrate from files, and tell the user continuity fell back to file context.
 
 8. **Wait for Codex to confirm it started.** Poll for the per-run marker with a 120-second timeout. This is a bounded handshake, NOT general progress polling - we only loop until the marker appears or the timeout fires. Because the marker path includes this run's NONCE, a stale Codex from a prior session cannot satisfy the poll. (120s, not 30s: `codex exec` model spin-up can take well over 30 seconds before it reaches its first action, and a 30s cap produced false "handshake failed" results even though Codex was about to start.)
 
@@ -156,6 +164,8 @@ Hand the keys to Codex. Watch in another tab.
     - Every planned task logged `done` -> proceed to review (`/volley:review-code`).
     - A divergence note or fewer tasks than planned -> resolve it first (correct the plan, commit any already-done work, re-spawn from the next task), then review.
     - `WATCH TIMEOUT` with `ACTIVE=codex` -> the run is slow or stuck; check the tab / `/volley:status` (the stale-lock guard applies).
+
+    **Update the managed checkpoint (only).** After reading the log, rewrite the block between the `<!-- volley:managed:start -->` / `<!-- volley:managed:end -->` markers in `.volley/CHECKPOINT.md` (default path; honor `context.managedCheckpoint` if configured) with the current objective, what was accepted, open questions, artifacts, verification evidence, and the recommended next action. Update ONLY that managed block - never touch the user-owned `.volley/HANDOFF.md`, and never edit substantive project docs as an orchestration side effect (those changes belong to the task being implemented/reviewed). If `resume-if-safe` is configured, also persist the captured `sessionId` to `.volley/local.json` now.
 
     This is a single fire-once notifier, NOT per-turn polling (see the note below).
 

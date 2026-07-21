@@ -57,9 +57,16 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
    Keep it under 500 words. Skip filler.
    ```
 
-5. **Invoke Codex via MCP.** Call `mcp__codex__codex` with the review prompt, `sandbox: "read-only"` (reviews are non-mutating), and `approval-policy: "never"` (no interactive prompts). If a follow-up question is needed, use `mcp__codex__codex-reply` with the returned thread ID to continue the session. If an error indicates the MCP server isn't reachable, tell the user to restart Claude Code and re-run `/volley:setup` to verify the registration is intact.
+5. **Resolve the review role's model/effort/context from config.** Read `.volley/config.json` (parse it yourself; absent = defaults). Take `codex.review.model`, `codex.review.reasoningEffort`, and apply any `.volley/local.json` `modelOverrides.review`. Check `context.required` files all exist - if any is missing, stop with a clear error naming the file (fail early). Note which `context.optional` files exist; missing optional files are reported and skipped.
 
-6. **Write the review to `.volley/PLAN-REVIEW.md`.** Prepend a small header with the plan path and timestamp, then Codex's response:
+6. **Invoke Codex via MCP.** Call `mcp__codex__codex` with the review prompt and:
+   - `sandbox: "read-only"` (reviews are non-mutating) and `approval-policy: "never"` (no interactive prompts) - **preserve these exactly**.
+   - `cwd: <canonical git root>` (from `git rev-parse --show-toplevel`) so Codex reads this project, not the MCP server's incidental cwd.
+   - `model: "<resolved>"` **only if** not `inherit`; and `config: { "model_reasoning_effort": "<effort>" }` if an effort is set.
+   - **Continuity:** capture the returned `threadId` and save it to `.volley/local.json` under `roles.planReview` (with `updatedAtUtc`). Within *this* exchange, follow-ups use `mcp__codex__codex-reply` with that `threadId` (verified to retain context). Across a Claude restart do **not** try to reuse it over MCP - the session-start tool has no resume input; instead start a fresh session, rehydrate from the context files + `.volley/CHECKPOINT.md`, and tell the user continuity fell back to file-based context (with the reason).
+   - If an error indicates the MCP server isn't reachable, tell the user to restart Claude Code and re-run `/volley:setup`. If Codex reports an unavailable model or bad reasoning level, surface it verbatim and stop - never silently substitute.
+
+7. **Write the review to `.volley/PLAN-REVIEW.md`.** Prepend a small header with the plan path and timestamp, then Codex's response:
 
    ```markdown
    # Codex Plan Review
@@ -72,9 +79,9 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
    <Codex's response verbatim>
    ```
 
-7. **Surface the review inline.** Print the file content (or a clean summary if it's long) so the user reads it without opening another editor.
+8. **Surface the review inline.** Print the file content (or a clean summary if it's long) so the user reads it without opening another editor.
 
-8. **Print the next-step block.** Decide based on Codex's verdict:
+9. **Print the next-step block.** Decide based on Codex's verdict:
    - If `APPROVE`: `volley_next_step "/volley:implement" "Plan approved by Codex. Open Codex in a new terminal tab to build."`
    - If `CONCERNS`: `volley_next_step_options "Option A|/volley:implement|Accept review and proceed anyway" "Option B|edit PLAN.md|Address concerns then re-run /volley:review-plan"`
    - If `REJECT`: `volley_next_step "edit PLAN.md" "Address Codex's concerns and re-run /volley:review-plan."`

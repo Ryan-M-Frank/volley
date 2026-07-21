@@ -4,3 +4,10 @@ IMPLEMENTATION-LOG.md
 log-*.jsonl
 pr-*-meta.json
 pr-*-diff.patch
+# Machine-local state: model overrides + exact thread/session IDs. Never commit
+# (IDs are per-user/per-machine and could resume the wrong project elsewhere).
+local.json
+codex-prompt-*.txt
+CODEX-STARTED-*
+# NOTE: config.json and CHECKPOINT.md are intentionally NOT ignored - they are
+# shared, committed project state.

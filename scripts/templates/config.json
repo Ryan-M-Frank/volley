@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "codex": {
+    "review": {
+      "model": "inherit",
+      "reasoningEffort": "high",
+      "continuity": "session-only"
+    },
+    "implementation": {
+      "model": "inherit",
+      "reasoningEffort": "high",
+      "continuity": "rehydrate"
+    }
+  },
+  "context": {
+    "required": [],
+    "optional": ["AGENTS.md", "CLAUDE.md", "planning.md", "HANDOFF.md", "CURRENT-STATE.md"],
+    "managedCheckpoint": ".volley/CHECKPOINT.md"
+  }
+}

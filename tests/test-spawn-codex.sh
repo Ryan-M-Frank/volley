@@ -29,6 +29,9 @@ echo "test prompt" > "$PROMPT"
 SANDBOX="$TMPDIR/sandbox"
 mkdir -p "$SANDBOX/platforms"
 cp "$SCRIPT" "$SANDBOX/spawn-codex.sh"
+# spawn-codex.sh sources lib.sh from its own dir (for model/effort flag building),
+# so the isolation sandbox must carry a copy too.
+cp "$ROOT/scripts/lib.sh" "$SANDBOX/lib.sh"
 
 for pf in windows macos linux tmux; do
   cat > "$SANDBOX/platforms/$pf.sh" <<EOF

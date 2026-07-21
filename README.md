@@ -111,6 +111,9 @@ Two transports for two latency profiles. Short ops (plan review, PR review) go t
 .volley/
 ├── STATE                # ACTIVE=<actor>  TASK=<short-label>  SINCE=<iso8601>  PID=<int>
 ├── HANDOFF.md           # User-owned. Both AIs read; neither writes.
+├── CHECKPOINT.md        # Volley-managed cross-agent state (updated inside markers only)
+├── config.json          # Shared, committed: models, reasoning, context manifest
+├── local.json           # Machine-local, gitignored: model overrides + exact thread/session IDs
 ├── PLAN-REVIEW.md       # Codex's plan review (written by /volley:review-plan)
 ├── CODE-REVIEW.md       # Claude's review of Codex's code (written by /volley:review-code)
 ├── PR-REVIEW-<num>.md   # Codex's PR review (written by /volley:review-pr)
@@ -125,16 +128,27 @@ Stale-lock detection: if the lock is older than 30 minutes AND the named PID is 
 
 `.volley/` is **per-repo** (not global). Each repo gets its own STATE, its own HANDOFF.md, its own review artifacts. This is intentional — concurrent work across repos doesn't share a lock.
 
-Add this to your repo's `.gitignore` (or use the included `.volley/.gitignore` which excludes everything except `HANDOFF.md`):
+Add this to your repo's `.gitignore` (or use the included `.volley/.gitignore`):
 
 ```gitignore
 .volley/STATE
 .volley/*REVIEW*.md
 .volley/IMPLEMENTATION-LOG.md
 .volley/CODEX-STARTED-*
+.volley/local.json        # exact thread/session IDs + machine-local model overrides
 ```
 
-Commit `.volley/HANDOFF.md` so both AIs in a fresh clone start with the same context.
+Commit `.volley/HANDOFF.md`, `.volley/config.json`, and `.volley/CHECKPOINT.md` so both AIs in a fresh clone start with the same context, model policy, and last-known state. **Never commit `.volley/local.json`** - its thread/session IDs are per-user/per-machine and could resume the wrong project elsewhere.
+
+## Model selection & continuity
+
+Volley lets you pick which Codex model answers, separately for reviews and implementation, and keeps Codex feeling like a continuing collaborator on *this* project.
+
+- **Model choice** (`.volley/config.json`): set `codex.review.model` / `codex.implementation.model` to a concrete model id or `"inherit"` (use Codex's own default). `reasoningEffort` is separately configurable. Machine-local overrides go in `.volley/local.json`. Setup validates the model against the live Codex surface - an unavailable model errors out; Volley never silently substitutes another.
+- **Project context**: every Codex session runs with the canonical Git root as its `cwd` and is pointed at the project's authority files (`config.json` `context` manifest - required files must exist, optional ones are skipped if absent).
+- **Conversational continuity**: within a review exchange, follow-ups resume the exact Codex thread. Implementation can optionally resume an exact prior session by id (never `--last`), guarded by repository identity so a copied state file can't resume another project.
+
+**The boundary (important):** Volley can resume **Volley-created** Codex conversations and share your project's committed files. It **cannot** inherit Claude's private chat history, and it **cannot** attach to an unrelated Codex desktop-app task. Across a full restart, MCP reviews rehydrate a fresh Codex session from your project files + `CHECKPOINT.md` rather than pretending a dead thread was preserved - and they tell you when that fallback happens.
 
 ## FAQ
 

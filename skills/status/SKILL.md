@@ -36,7 +36,9 @@ Read-only inspection of the Volley state. Never modifies anything.
    [ -z "$ARTIFACTS" ] && ARTIFACTS="(no review artifacts yet)"
    ```
 
-5. **Report to user.** Format like this:
+5. **Read continuity config for the report (non-mutating).** If `.volley/config.json` exists, parse it (host JSON, no jq) and resolve the review/implementation `model` + `reasoningEffort` (`inherit` → show "Codex default"). If `.volley/local.json` exists, note whether repo identity matches (`volley_repo_identity_matches`) and which roles have a stored thread/session id (presence only - never print the id or any secret). Absent files → report "defaults / not initialized".
+
+6. **Report to user.** Format like this:
    ```
    Volley Status
    ──────────
@@ -45,11 +47,19 @@ Read-only inspection of the Volley state. Never modifies anything.
    Lock since:    <SINCE>  (<AGE>s ago)
    Recorded PID:  <PID>  (<PID_STATUS>)
 
+   Continuity
+   ──────────
+   Review model:  <model / Codex default>  (effort: <effort>)
+   Impl model:    <model / Codex default>  (effort: <effort>)
+   Repo identity: <match | mismatch → will rehydrate | not initialized>
+   Saved threads: planReview=<yes/no> prReview=<yes/no> implementation=<yes/no>
+   Local state:   .volley/local.json   Checkpoint: <managedCheckpoint path>
+
    Recent artifacts:
    <ls output>
    ```
 
-6. **Detect stale lock.** Stale = `ACTIVE=codex` AND one of:
+7. **Detect stale lock.** Stale = `ACTIVE=codex` AND one of:
    - `PID != 0` AND PID is dead, OR
    - `AGE > 1800` seconds (30 minutes).
 
@@ -59,7 +69,7 @@ Read-only inspection of the Volley state. Never modifies anything.
      Run /volley:unlock to clear it.
    ```
 
-7. **Print the next-step block.** Decide based on state:
+8. **Print the next-step block.** Decide based on state:
    - If stale: `volley_next_step "/volley:unlock" "Clear the stale lock so Claude can resume."`
    - If `ACTIVE=codex` and alive: `volley_next_step_done "Codex is currently working. Watch the terminal tab; re-run /volley:status when it finishes."`
    - If `ACTIVE=claude` and `TASK=done`: `volley_next_step "/volley:review-code" "Codex finished. Review the diff against the plan."`

@@ -17,7 +17,9 @@ spawn_macos() {
   local qpath qrepo
   qpath=$(printf %q "$prompt_abs")
   qrepo=$(printf %q "$repo_root")
-  local inner="cat ${qpath} | codex exec --sandbox ${VOLLEY_CODEX_SANDBOX:-workspace-write} -C ${qrepo} -c approval_policy=never"
+  # VOLLEY_CODEX_FLAGS (optional): validated `-m`/`-c model_reasoning_effort=`
+  # tokens from the dispatcher. Bare identifiers only, so unquoted is safe.
+  local inner="cat ${qpath} | codex exec ${VOLLEY_CODEX_FLAGS:-} --sandbox ${VOLLEY_CODEX_SANDBOX:-workspace-write} -C ${qrepo} -c approval_policy=never"
 
   if osascript -e 'tell application "System Events" to (name of processes) contains "iTerm2"' 2>/dev/null | grep -qi true \
      || [ -d "/Applications/iTerm.app" ]; then
