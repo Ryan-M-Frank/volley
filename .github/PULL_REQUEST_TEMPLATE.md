@@ -16,7 +16,7 @@ for t in tests/*.sh; do bash "$t"; done
 
 ## Platform(s) tested on
 
-<!-- Check every platform you actually ran /volley:implement on. For changes that only affect MCP-based skills or lock logic, checking "not applicable" is fine. -->
+<!-- Check every platform you actually ran /volley:implement on. For changes that only affect the review skills (codex-exec.sh) or lock logic, checking "not applicable" is fine. -->
 
 - [ ] Windows (Windows Terminal + Git Bash)
 - [ ] macOS (specify terminal: iTerm2 / Terminal.app / other: _____)

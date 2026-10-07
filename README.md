@@ -7,7 +7,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Ryan-M-Frank/volley/ci.yml?branch=main)](https://github.com/Ryan-M-Frank/volley/actions)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/claude--code-skills-orange)](https://docs.claude.com/claude-code)
-[![Codex CLI](https://img.shields.io/badge/codex--cli-MCP-black)](https://github.com/openai/codex)
+[![Codex CLI](https://img.shields.io/badge/codex--cli-exec-black)](https://github.com/openai/codex)
 
 </div>
 
@@ -31,7 +31,7 @@ If you've ever:
 ## The flow
 
 ```
-  Plan / PR review — fast, returns in seconds (over MCP)
+  Plan / PR review — inline, read-only (codex exec)
 
     You + Claude  ──/volley:review-plan──▶  Codex reads the plan
     You + Claude  ◀──────── verdict ───────  and returns a critique
@@ -61,7 +61,7 @@ cd my-project
 claude  # start Claude Code
 
 # 3. Inside Claude Code
-/volley:setup           # one-time: confirms the bundled Codex MCP, scaffolds .volley/
+/volley:setup           # one-time: checks Codex, smoke-tests it, scaffolds .volley/
 /volley:status          # sanity-check the install
 ```
 
@@ -71,21 +71,21 @@ Once installed, the skills below are available in any repo.
 
 | Skill | What it does | Calls Codex via |
 |---|---|---|
-| **`/volley:setup`** | One-time: verifies Codex, confirms the bundled MCP is reachable, scaffolds `.volley/` | (smoke test) |
+| **`/volley:setup`** | One-time: verifies Codex, smoke-tests `codex exec`, scaffolds `.volley/` | (smoke test) |
 | **`/volley:status`** | Inspect the lock state, lock age, stale-PID detection | (local only) |
 | **`/volley:unlock`** | Force-clear a stuck STATE lock (escape hatch) | (local only) |
-| **`/volley:diagnose`** | Health-check: Codex CLI, MCP reachability, platform terminal, and lock state | (local only) |
-| **`/volley:review-plan`** | Hand a plan document to Codex for review; output to `.volley/PLAN-REVIEW.md` | **MCP** (fast) |
-| **`/volley:review-pr <num>`** | Hand a GitHub PR diff to Codex for review; output to `.volley/PR-REVIEW-<num>.md` | **MCP** (fast) |
+| **`/volley:diagnose`** | Health-check: Codex CLI and `codex exec`, platform terminal, and lock state | (local only) |
+| **`/volley:review-plan`** | Hand a plan document to Codex for review; output to `.volley/PLAN-REVIEW.md` | **codex exec** (inline) |
+| **`/volley:review-pr <num>`** | Hand a GitHub PR diff to Codex for review; output to `.volley/PR-REVIEW-<num>.md` | **codex exec** (inline) |
 | **`/volley:implement`** | Hand a plan to Codex; Codex runs in a visible terminal tab while Claude waits | **Terminal spawn** (long-running) |
 | **`/volley:review-code`** | Claude reviews Codex's diff against the plan; output to `.volley/CODE-REVIEW.md` | (local; no Codex call) |
 
-Two transports for two latency profiles. Short ops (plan review, PR review) go through MCP and return in seconds. Long ops (implementation) spawn a visible Codex terminal so you can watch progress without blocking Claude's session.
+Two transports for two latency profiles. Short ops (plan review, PR review) run `codex exec` read-only through `scripts/codex-exec.sh` and come back inline, with the session saved so the next review round can resume it. (Volley 0.2 used Codex's MCP server; Codex 0.156 removed `codex mcp-server`, so 0.3 switched.) Long ops (implementation) spawn a visible Codex terminal so you can watch progress without blocking Claude's session.
 
 ## Requirements
 
 - **[Claude Code](https://docs.claude.com/claude-code)** — the host environment
-- **[Codex CLI](https://github.com/openai/codex)** >= 0.129, authenticated (`codex login`)
+- **[Codex CLI](https://github.com/openai/codex)** >= 0.156, authenticated (`codex login`)
 - **Bash** (Git Bash on Windows is fine)
 - For `/volley:implement` only:
   - **macOS:** iTerm2 or Terminal.app
@@ -148,7 +148,7 @@ Volley lets you pick which Codex model answers, separately for reviews and imple
 - **Project context**: every Codex session runs with the canonical Git root as its `cwd` and is pointed at the project's authority files (`config.json` `context` manifest - required files must exist, optional ones are skipped if absent).
 - **Conversational continuity**: within a review exchange, follow-ups resume the exact Codex thread. Implementation can optionally resume an exact prior session by id (never `--last`), guarded by repository identity so a copied state file can't resume another project.
 
-**The boundary (important):** Volley can resume **Volley-created** Codex conversations and share your project's committed files. It **cannot** inherit Claude's private chat history, and it **cannot** attach to an unrelated Codex desktop-app task. Across a full restart, MCP reviews rehydrate a fresh Codex session from your project files + `CHECKPOINT.md` rather than pretending a dead thread was preserved - and they tell you when that fallback happens.
+**The boundary (important):** Volley can resume **Volley-created** Codex conversations and share your project's committed files. It **cannot** inherit Claude's private chat history, and it **cannot** attach to an unrelated Codex desktop-app task. Across a full restart, reviews resume the saved Codex session only when `codex.review.continuity` is `resume-if-safe` and the repo identity still matches; by default (`session-only`) and with `rehydrate` they instead rehydrate a fresh Codex session from your project files + `CHECKPOINT.md` rather than pretending a dead thread was preserved - and they tell you when that fallback happens.
 
 ## FAQ
 
@@ -156,7 +156,7 @@ Volley lets you pick which Codex model answers, separately for reviews and imple
 Sometimes you want a fresh perspective. Codex doesn't see Claude's context window, so its review is genuinely independent. The plan/PR review skills exist for that reason. The `/volley:implement` skill exists because long implementations burn Claude's context budget unnecessarily — offloading to Codex preserves Claude's session for higher-leverage work.
 
 **Q: Why not just run Codex in a separate terminal manually?**
-You can. Volley adds (a) the hard lock so they can't both edit at once, (b) structured handoffs through `.volley/` files Claude reads automatically, and (c) the MCP pathway so short ops complete inline without a terminal swap.
+You can. Volley adds (a) the hard lock so they can't both edit at once, (b) structured handoffs through `.volley/` files Claude reads automatically, and (c) an inline `codex exec` path so reviews complete without a terminal swap.
 
 **Q: Will this work with Gemini CLI / Aider / Cursor?**
 Not out of the box — v0.1 ships with Codex as the second assistant. But the backend is swappable: the [extension guide](docs/EXTENDING-ASSISTANTS.md) documents exactly where Codex is wired in and how to point Volley at another assistant. Pluggable adapters are on the roadmap.

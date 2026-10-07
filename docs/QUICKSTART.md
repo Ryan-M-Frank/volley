@@ -25,7 +25,7 @@ Then run the one-time setup (once per repo):
 /volley:setup
 ```
 
-Setup verifies that Codex is installed, confirms the bundled Codex MCP server is reachable, and runs a smoke-test call.
+Setup verifies that Codex is installed (0.156 or newer), checks that `codex exec` runs non-interactively, and runs a smoke-test call.
 
 ---
 
@@ -35,7 +35,7 @@ Setup verifies that Codex is installed, confirms the bundled Codex MCP server is
 /volley:diagnose
 ```
 
-Diagnose checks: Codex binary on PATH, MCP reachability, platform terminal, plugin assets, and (if you're in a repo) STATE file integrity. Fix any items it flags before proceeding.
+Diagnose checks: Codex binary on PATH, `codex exec`, platform terminal, plugin assets, and (if you're in a repo) STATE file integrity. Fix any items it flags before proceeding.
 
 ---
 
@@ -77,7 +77,7 @@ Before writing any code, get a second opinion on the approach. If you have a pla
 /volley:review-plan
 ```
 
-Volley passes the plan to Codex via MCP (read-only, no file writes). Codex returns a critique — gaps in the design, edge cases you missed, simpler alternatives. The review is written to `.volley/PLAN-REVIEW.md` and shown inline. This takes seconds, not minutes.
+Volley passes the plan to Codex via `codex exec` (read-only, no file writes). Codex returns a critique — gaps in the design, edge cases you missed, simpler alternatives. The review is written to `.volley/PLAN-REVIEW.md` and shown inline. A high-effort review usually takes a few minutes.
 
 Read the review and revise the plan before handing off to implementation.
 
@@ -148,7 +148,7 @@ The `.volley/` directory (except `HANDOFF.md`) is gitignored, so review artifact
 
 | Skill | When to use it |
 |---|---|
-| `/volley:setup` | Once per repo — confirms bundled MCP and smoke-tests |
+| `/volley:setup` | Once per repo — checks Codex and smoke-tests `codex exec` |
 | `/volley:diagnose` | Something seems broken — run this first |
 | `/volley:status` | Check who holds the lock and for how long |
 | `/volley:unlock` | Clear a stuck lock after confirming it's stale |

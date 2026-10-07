@@ -4,31 +4,15 @@ Volley pairs Claude with a second assistant that holds the implementation lock w
 
 ---
 
-## Seam 1 - The MCP bridge
+## Seam 1 - The review transport
 
-**Files involved:** `.mcp.json` (plugin root), `skills/review-plan/SKILL.md`, `skills/review-code/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, `skills/diagnose/SKILL.md`
+**Files involved:** `scripts/codex-exec.sh`, `skills/review-plan/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, `skills/diagnose/SKILL.md`
 
-The plugin's `.mcp.json` registers the Codex MCP server so Claude can call it in-session:
+Reviews and the setup smoke test call `scripts/codex-exec.sh`, which runs one read-only `codex exec --json` turn, writes the final message to `--out`, saves the event stream, and prints `SESSION_ID=` / `CONTINUITY=` so the skill can store the session in `.volley/local.json` and resume it next round with `codex exec resume <id>`. (Volley 0.2 used Codex's MCP server for this; Codex 0.156 removed `codex mcp-server`.)
 
-```json
-{
-  "mcpServers": {
-    "codex": {
-      "command": "codex",
-      "args": ["mcp-server"]
-    }
-  }
-}
-```
+`skills/review-code/SKILL.md` does not call Codex at all - it is a Claude-only inline review of the diff.
 
-The three review skills call exactly two MCP tools from this server:
-
-- `mcp__codex__codex` - start a new Codex session (used in `review-plan` and `review-pr`)
-- `mcp__codex__codex-reply` - continue an existing session with a follow-up
-
-`skills/review-code/SKILL.md` does not call Codex via MCP at all - it is a Claude-only inline review of the diff.
-
-**To swap:** If your replacement assistant exposes an MCP server, register it in `.mcp.json` under a new key (e.g. `"gemini"`) and update the tool references in `skills/review-plan/SKILL.md`, `skills/review-pr/SKILL.md`, `skills/setup/SKILL.md`, and `skills/diagnose/SKILL.md` from `mcp__codex__codex` / `mcp__codex__codex-reply` to the equivalent tools your server exposes. If your assistant has no MCP server, see the fallback note under "What a second assistant must provide" below.
+**To swap:** write an equivalent script for your assistant (same arguments and the same two output lines), or point `VOLLEY_CODEX_BIN` at a wrapper that speaks `codex exec`'s flags. The skills only depend on the script's interface, not on Codex itself.
 
 ---
 
@@ -69,11 +53,11 @@ The authoritative liveness signal is the `.volley/CODEX-STARTED-<NONCE>` handsha
 
 These skills reference Codex by name in several places:
 
-- `skills/setup/SKILL.md`: version check (`codex --version`, minimum >= 0.129), MCP smoke test (invokes `mcp__codex__codex` with `prompt: "Reply with the single word: PONG"`), install remedy (`npm install -g @openai/codex`).
+- `skills/setup/SKILL.md`: version check (`codex --version`, minimum >= 0.156), smoke test (runs `scripts/codex-exec.sh` with the prompt "Reply with the single word: PONG"), install remedy (`npm install -g @openai/codex`).
 - `skills/implement/SKILL.md`: the spawner call (`bash scripts/spawn-codex.sh`), the prompt it builds for Codex, and the tab title `"volley:codex"`.
-- `skills/diagnose/SKILL.md`: checks `codex --version` and the `mcp__codex__codex` MCP tool.
+- `skills/diagnose/SKILL.md`: checks `codex --version` and `codex exec --help`.
 
-**To swap:** Update the version check command and minimum version, the MCP smoke test tool name, the install remedy, and any `"Codex"` labels in the user-facing output. The spawner call (`spawn-codex.sh`) can be renamed or left as-is - the filename is internal.
+**To swap:** Update the version check command and minimum version, the smoke test command, the install remedy, and any `"Codex"` labels in the user-facing output. The spawner call (`spawn-codex.sh`) can be renamed or left as-is - the filename is internal.
 
 ---
 
@@ -83,7 +67,7 @@ To slot in as Volley's second assistant, a tool needs:
 
 1. **A non-interactive execute mode.** The assistant must accept a prompt via stdin or a file and run it against the working tree without waiting for interactive input. This is what the spawner calls. Examples: `codex exec`, `gemini`, `aider --message-file -`.
 
-2. **Ideally an MCP server.** The review skills (`/volley:review-plan`, `/volley:review-pr`) call the assistant in-session via MCP for fast, structured responses. Without MCP, both review paths can fall back to the spawn-a-terminal pattern used by `/volley:implement` - but that is slower and returns no structured data back to Claude in the same session.
+2. **A read-only, non-interactive review call that returns a session id.** The review skills call the assistant through `scripts/codex-exec.sh`; a replacement needs a mode that runs read-only, writes its final answer to a file, and ideally lets a later call resume the same conversation.
 
 3. **Ability to write a handshake file.** The assistant's prompt instructs it to create `.volley/CODEX-STARTED-<NONCE>` as its first action. Any assistant that can follow prompt instructions and write files satisfies this. If the assistant's execute mode is truly read-only (no file writes allowed), the handshake cannot work and the STATE lock will never flip.
 
@@ -93,22 +77,9 @@ To slot in as Volley's second assistant, a tool needs:
 
 This is a concrete walkthrough. Gemini CLI (the `gemini` command from `@google/gemini-cli`) supports `gemini` reading from stdin.
 
-### Step 1 - Register the MCP server (if Gemini CLI exposes one)
+### Step 1 - Provide a review transport
 
-If a future Gemini CLI version ships an MCP server, add it to `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "gemini": {
-      "command": "gemini",
-      "args": ["mcp-server"]
-    }
-  }
-}
-```
-
-If no MCP server is available yet, skip this and accept that review skills will use the spawn-terminal fallback.
+Write `scripts/gemini-exec.sh` with the same arguments and `SESSION_ID=` / `CONTINUITY=` output as `scripts/codex-exec.sh`, running Gemini read-only, and point the review skills at it.
 
 ### Step 2 - Update each platform handler
 
@@ -131,7 +102,7 @@ Apply the equivalent one-line change in `scripts/platforms/macos.sh` and `script
 In `skills/setup/SKILL.md`, change:
 
 ```
-Run: `codex --version` — must succeed and print a version >= 0.129.
+Run: `codex --version` — must succeed and print a version >= 0.156.
 ```
 
 to:
@@ -142,7 +113,7 @@ Run: `gemini --version` — must succeed.
 
 Update the install remedy from `npm install -g @openai/codex` to `npm install -g @google/gemini-cli`.
 
-In `skills/diagnose/SKILL.md`, change the two `codex --version` and `mcp__codex__codex` references to `gemini --version` and `mcp__gemini__gemini` (or omit the MCP check if no MCP server is registered).
+In `skills/diagnose/SKILL.md`, change the `codex --version` and `codex exec --help` checks to their Gemini equivalents.
 
 In `skills/implement/SKILL.md`, update the tab title from `"volley:codex"` to `"volley:gemini"` (cosmetic only).
 
@@ -151,7 +122,7 @@ In `skills/implement/SKILL.md`, update the tab title from `"volley:codex"` to `"
 After making those changes, `/volley:diagnose` will check:
 
 - `gemini --version` (step 1) - PASS if the CLI is installed
-- `mcp__gemini__gemini` tool available (step 2) - PASS or WARN depending on whether you registered an MCP server
+- Gemini's non-interactive mode works (step 2) - PASS if your review script's command runs
 - Platform terminal binary present (step 3) - unchanged
 - Plugin assets intact (step 4) - unchanged; `spawn-codex.sh` filename does not affect this check
 
@@ -178,9 +149,8 @@ Each adapter exposes three functions:
 # Returns 0 on successful launch, non-zero on failure.
 assistant_spawn(prompt_file, title)
 
-# Echo the MCP server name this assistant registers, e.g. "codex" or "gemini".
-# Echo empty string if no MCP server.
-assistant_mcp_server_name()
+# Path of the read-only review script for this assistant, e.g. scripts/codex-exec.sh.
+assistant_review_script()
 
 # Run the version check and print "[PASS] ..." or "[FAIL] ..." to stdout.
 # Used by /volley:diagnose and /volley:setup.
@@ -189,6 +159,6 @@ assistant_version_check()
 
 The active adapter is selected by a `VOLLEY_ASSISTANT` env var (default: `codex`). `/volley:setup` gains a backend picker step that sets `VOLLEY_ASSISTANT` in a per-repo `.volley/CONFIG` file.
 
-`scripts/spawn-codex.sh` becomes `scripts/spawn-assistant.sh`, sources `scripts/assistants/${VOLLEY_ASSISTANT}.sh`, and calls `assistant_spawn`. The review and setup skills read `assistant_mcp_server_name()` instead of hardcoding `mcp__codex__codex`.
+`scripts/spawn-codex.sh` becomes `scripts/spawn-assistant.sh`, sources `scripts/assistants/${VOLLEY_ASSISTANT}.sh`, and calls `assistant_spawn`. The review and setup skills call `assistant_review_script()` instead of hardcoding `scripts/codex-exec.sh`.
 
 **If you want to contribute a new assistant backend, target this interface.** A PR that adds `scripts/assistants/gemini.sh` implementing those three functions, plus tests in `tests/test-assistants.sh`, lands cleanly without touching the platform handlers or skill prose. PRs that patch individual platform files for a new assistant are harder to maintain and will be asked to rebase onto the adapter interface once it lands.

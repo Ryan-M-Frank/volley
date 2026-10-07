@@ -9,5 +9,10 @@ pr-*-diff.patch
 local.json
 codex-prompt-*.txt
 CODEX-STARTED-*
+# Review prompts, raw Codex replies and --json event streams from scripts/codex-exec.sh
+*-prompt.md
+*-raw.md
+*.events.jsonl
+*.attempt
 # NOTE: config.json and CHECKPOINT.md are intentionally NOT ignored - they are
 # shared, committed project state.

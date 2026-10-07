@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # E2E test for /volley:setup. Simulates the file-creation steps the skill runs.
-# Does NOT test the MCP smoke-test step (requires a live Claude Code session).
+# Does NOT test the codex-exec smoke-test step (needs a live Codex login; see test-codex-exec.sh).
 set -u
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,15 +29,15 @@ cp scripts/templates/gitignore .volley/.gitignore
 . scripts/lib.sh
 volley_state_write .volley/STATE claude idle 0
 
-# NOTE: setup no longer writes a project .mcp.json - Codex MCP is bundled in
-# the plugin. Assertions below cover only the scaffolding that still happens.
+# NOTE: setup never writes a project .mcp.json - since 0.3 Volley uses no MCP server at all
+# Assertions below cover only the scaffolding that still happens.
 
 # Assertions
 [ -f .volley/HANDOFF.md ] && pass "HANDOFF.md created" || fail "HANDOFF.md missing"
 [ -f .volley/.gitignore ] && pass ".gitignore created" || fail ".gitignore missing"
 [ -f .volley/STATE ] && pass "STATE created" || fail "STATE missing"
 grep -q "^ACTIVE=claude$" .volley/STATE && pass "STATE initialised correctly" || fail "STATE bad"
-[ ! -f .mcp.json ] && pass "no project .mcp.json written (bundled in plugin)" || fail "unexpected .mcp.json created"
+[ ! -f .mcp.json ] && pass "no project .mcp.json written" || fail "unexpected .mcp.json created"
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

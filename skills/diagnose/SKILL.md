@@ -1,6 +1,6 @@
 ---
 name: diagnose
-description: Diagnose the Volley environment in one shot - Codex CLI, the bundled MCP bridge, the platform terminal, and the per-repo lock state. Use when setup misbehaves or before starting a session in a new repo.
+description: Diagnose the Volley environment in one shot - Codex CLI and its non-interactive mode, the platform terminal, and the per-repo lock state. Use when setup misbehaves or before starting a session in a new repo.
 ---
 
 # /volley:diagnose
@@ -9,9 +9,9 @@ One-shot diagnosis of whether Volley is wired up correctly here. Run each check,
 
 ## Steps for Claude
 
-1. **Codex CLI present.** Run `codex --version`. PASS if it prints a version >= 0.129; FAIL otherwise (remedy: `npm install -g @openai/codex`).
+1. **Codex CLI present.** Run `codex --version`. PASS if it prints a version >= 0.156; FAIL otherwise (remedy: `npm install -g @openai/codex`).
 
-2. **Bundled Codex MCP reachable.** Check whether the `mcp__codex__codex` tool is available this session. PASS if available; WARN if not (remedy: `/reload-plugins` or restart Claude Code, since the plugin's bundled server may not have loaded yet).
+2. **Codex runs non-interactively.** Run `codex exec --help`; PASS if it succeeds, FAIL otherwise (remedy: update Codex with `npm install -g @openai/codex`). Then WARN if any `.mcp.json` in this repo still registers `codex mcp-server` (remedy: remove that entry - Codex 0.156 removed the command and Volley no longer uses MCP). Do not make a model call here.
 
 3. **Platform terminal available.** Detect the OS and check for a usable terminal launcher:
    ```bash
@@ -27,7 +27,7 @@ One-shot diagnosis of whether Volley is wired up correctly here. Run each check,
 
 4. **Plugin assets intact.** Confirm the bundled scripts resolve:
    ```bash
-   for f in scripts/lib.sh scripts/spawn-codex.sh scripts/platforms/windows.sh scripts/platforms/macos.sh scripts/platforms/linux.sh scripts/platforms/tmux.sh; do
+   for f in scripts/lib.sh scripts/codex-exec.sh scripts/spawn-codex.sh scripts/platforms/windows.sh scripts/platforms/macos.sh scripts/platforms/linux.sh scripts/platforms/tmux.sh; do
      [ -f "${CLAUDE_PLUGIN_ROOT}/$f" ] && echo "[PASS] $f" || echo "[FAIL] missing $f"
    done
    ```

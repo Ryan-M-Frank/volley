@@ -10,16 +10,14 @@ This is a **coordination convention, not a security boundary.** A determined loc
 
 ### Codex sandbox and approval policy
 
-Volley passes explicit sandbox and approval settings when calling Codex through MCP:
+Volley passes explicit sandbox settings every time it calls Codex:
 
-- **Review operations** (`/volley:review-plan`, `/volley:review-pr`) run Codex with `sandbox: read-only` and `approval-policy: never`. Codex reads files and returns a critique; it does not write anything.
+- **Review operations** (`/volley:review-plan`, `/volley:review-pr`, the `/volley:setup` smoke test) go through `scripts/codex-exec.sh`, which runs `codex exec --sandbox read-only`, and on a resumed round `codex exec resume -c sandbox_mode="read-only"` (resume has no `--sandbox` flag). `codex exec` never prompts for approval. Codex reads files and returns a critique; it does not write anything. Model and effort values are validated as bare tokens before they reach the command line.
 - **Implementation** (`/volley:implement`) spawns Codex in a **visible terminal tab** under whatever sandbox policy your local Codex configuration applies. The user can watch every action Codex takes in real time. Volley does not override or weaken your Codex approval settings for the implementation path.
 
-### The bundled MCP server
+### How Volley reaches Codex
 
-Volley ships a `.mcp.json` that registers an MCP server pointing at your **local `codex` binary**. Volley itself makes no network calls — it is a collection of bash scripts and skill definitions. Any network traffic originates from Codex (connecting to the OpenAI API) under the authentication credentials you established with `codex login`.
-
-The `.mcp.json` entry tells Claude Code where to find Codex on your machine. It does not transmit your credentials or any repo content to a Volley-controlled server — there is no such server.
+Volley calls your **local `codex` binary** directly (`codex exec`). Volley itself makes no network calls - it is a collection of bash scripts and skill definitions. Any network traffic originates from Codex (connecting to the OpenAI API) under the authentication credentials you established with `codex login`. There is no Volley-controlled server. (Volley 0.2 registered an MCP server via `.mcp.json`; 0.3 removed it because Codex 0.156 dropped `codex mcp-server`.)
 
 ### What Volley does NOT do
 

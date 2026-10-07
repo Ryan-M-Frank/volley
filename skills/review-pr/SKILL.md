@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Use to send a GitHub PR's diff to Codex for review via MCP. Required argument is the PR number. Output written to .volley/PR-REVIEW-<num>.md and shown inline. Asks for explicit user opt-in before posting as a PR comment.
+description: Use to send a GitHub PR's diff to Codex for review via `codex exec`. Required argument is the PR number. Output written to .volley/PR-REVIEW-<num>.md and shown inline. Asks for explicit user opt-in before posting as a PR comment.
 ---
 
 # /volley:review-pr
@@ -32,6 +32,8 @@ Codex reviews a PR. You decide whether to post the review as a comment.
    You are reviewing a GitHub pull request. Be specific. Cite file paths
    and line numbers from the diff.
 
+   PROJECT CONTEXT: before reviewing, read these files in the repo (read-only): <list every context.required file, every context.optional file that exists, and the managedCheckpoint (default .volley/CHECKPOINT.md) if it exists>.
+
    PR TITLE: <title>
    PR DESCRIPTION:
    <body>
@@ -59,7 +61,7 @@ Codex reviews a PR. You decide whether to post the review as a comment.
    Keep it under 800 words.
    ```
 
-5. **Invoke Codex via MCP.** Same tool and rules as `/volley:review-plan` step 6: resolve `codex.review.model`/`reasoningEffort` from `.volley/config.json` (+ `local.json` overrides); pass `sandbox: "read-only"`, `approval-policy: "never"`, `cwd: <canonical git root>`, and `model`/`config.model_reasoning_effort` when not `inherit`. Persist the returned `threadId` to `.volley/local.json` under `roles.prReview`; use `mcp__codex__codex-reply` only for follow-ups within this exchange. Across a restart, rehydrate from files rather than reusing the id over MCP. Surface an unavailable-model/bad-effort error verbatim - never silently substitute. Handle MCP-unreachable errors the same way (restart + re-run `/volley:setup`).
+5. **Invoke Codex via `scripts/codex-exec.sh`.** First resolve model, effort, local overrides and required context files exactly as in `/volley:review-plan` step 5 (stop if a required file is missing), then follow its step 6 with role `prReview`: write the prompt to `.volley/pr-<num>-review-prompt.md`, then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" --prompt-file .volley/pr-<num>-review-prompt.md --out .volley/pr-<num>-review-raw.md --cwd "$(volley_repo_root)" --model <resolved> --effort <resolved> [--resume <roles.prReview.threadId>]` (resume per `codex.review.continuity` exactly as in `/volley:review-plan` step 6, with `roles.prReview`, and only when the repo identity matches). Save `SESSION_ID` to `.volley/local.json` under `roles.prReview`; report any `CONTINUITY=fallback:*`. Surface Codex errors verbatim; never substitute a model.
 
 6. **Write to `.volley/PR-REVIEW-<num>.md`.**
    ```markdown
@@ -70,7 +72,7 @@ Codex reviews a PR. You decide whether to post the review as a comment.
 
    ---
 
-   <Codex's response verbatim>
+   <Codex's response verbatim, i.e. the contents of .volley/pr-<num>-review-raw.md>
    ```
 
 7. **Surface the review inline.**
