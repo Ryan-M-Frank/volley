@@ -13,6 +13,6 @@ not reach Codex. Full write-up: [docs/incidents/2026-10-06-codex-mcp-bridge.md](
 - Review continuity follows `codex.review.continuity` (`resume-if-safe`, `session-only`, `rehydrate`).
 - `.gitattributes` keeps shell scripts LF on Windows checkouts.
 
-## 0.2.0
+## 0.2.0 - 2026-07-21
 
 - Codex model selection and project continuity (#3, #4).

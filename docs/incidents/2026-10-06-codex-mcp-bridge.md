@@ -9,7 +9,7 @@
 | When | What | Evidence |
 |---|---|---|
 | 2026-09-21 14:46 | Earliest `plugin:volley:codex (CONNECTION_CLOSED)` found in the maintainer's Claude Code session logs. | Local session transcripts on the maintainer's desktop. |
-| 2026-09-24 16:50 | codex-cli 0.156.1 installed (the current version). The same error appears in sessions across several projects afterwards. | `package.json` timestamp of the global npm install; session transcripts. |
+| 2026-09-24 16:50 | codex-cli 0.156.1 installed (the version installed when this was written). The same error appears in sessions across several projects afterwards. | `package.json` timestamp of the global npm install; session transcripts. |
 | 2026-10-06 evening | Diagnosed: `codex mcp-server` does not exist in 0.156.1. Fix written, reviewed and tested. | `codex --help`; running the bridge command by hand. |
 | 2026-10-06 22:23 | PR #5 merged (0.3.0). | GitHub. |
 
