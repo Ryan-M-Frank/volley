@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Use to initialize the Volley Claude+Codex workflow in this repo. Runs once per repo. Verifies Codex is installed, confirms the bundled Codex MCP server is reachable, scaffolds .volley/ with HANDOFF.md template, .gitignore, and an initial STATE file. Runs a smoke test that calls Codex via MCP.
+description: Use to initialize the Volley Claude+Codex workflow in this repo. Runs once per repo. Verifies Codex is installed and can run non-interactively, scaffolds .volley/ with HANDOFF.md template, .gitignore, and an initial STATE file. Runs a smoke test that calls Codex via `codex exec`.
 ---
 
 # /volley:setup
@@ -10,17 +10,12 @@ One-time installation of the Volley workflow.
 ## Steps for Claude
 
 1. **Verify Codex is installed.**
-   - Run: `codex --version` — must succeed and print a version >= 0.129.
-   - We do NOT run an explicit `codex login` probe here; the exact auth-status subcommand varies by Codex CLI version and a missing/wrong subcommand could falsely report "not logged in." Instead, the MCP smoke test in step 4 will surface auth errors clearly when the bridge tries to call Codex. If the smoke test fails with an auth error, instruct the user to run `codex login` and retry.
+   - Run: `codex --version` — must succeed and print a version >= 0.156.
+   - We do NOT run an explicit `codex login` probe here; the exact auth-status subcommand varies by Codex CLI version and a missing/wrong subcommand could falsely report "not logged in." Instead, the smoke test in step 4 will surface auth errors clearly when it calls Codex. If the smoke test fails with an auth error, instruct the user to run `codex login` and retry.
 
-2. **Confirm the bundled Codex MCP server is reachable.**
-   - Volley bundles the Codex MCP server (see the plugin's `.mcp.json`); you do NOT write a project `.mcp.json`.
-   - Check whether the `mcp__codex__codex` tool is available in this session.
-   - If it is NOT available, the plugin was just installed and its MCP server has not loaded yet. Tell the user:
-     "Run `/reload-plugins` (or restart Claude Code) so Volley's bundled Codex server loads, then re-run `/volley:setup`."
-     (Confirm the exact reload command against this Claude Code version if `/reload-plugins` is not recognized.)
-     Then STOP - do not continue until the tool is reachable.
-   - If it IS available, continue.
+2. **Confirm Codex can run non-interactively.**
+   - Run `codex exec --help` - it must succeed. Volley calls Codex through `scripts/codex-exec.sh` (`codex exec`); it no longer bundles an MCP server, because Codex 0.156 removed `codex mcp-server`.
+   - If this repo has a project `.mcp.json` from an older Volley (or the user added one) that registers `codex mcp-server`, tell the user that entry is dead and can be removed. Do not edit it yourself.
 
 3. **Scaffold `.volley/`.**
    - Create directory: `mkdir -p .volley`
@@ -46,12 +41,19 @@ One-time installation of the Volley workflow.
        "roles": {} }
      ```
 
-4. **Smoke-test the MCP bridge — and validate the configured model against the live surface.**
-   - By this point step 2 has confirmed the `mcp__codex__codex` tool is reachable. (The Codex MCP server exposes exactly two tools: `mcp__codex__codex` to start a session and `mcp__codex__codex-reply` to continue one. Older docs mention `mcp__codex__exec`/`mcp__codex__review` - those names are wrong.)
+4. **Smoke-test Codex - and validate the configured model against the live surface.**
    - Read `.volley/config.json` (parse it yourself - it is JSON, no jq needed). Resolve the **review** role's `model` and `reasoningEffort`.
-   - Invoke `mcp__codex__codex` with: `prompt: "Reply with the single word: PONG"`, `sandbox: "read-only"`, `approval-policy: "never"`, **plus** `cwd: <canonical repo root>`. If the resolved model is **not** `inherit`, also pass `model: "<model>"`; if a reasoning effort is set, pass `config: { "model_reasoning_effort": "<effort>" }`. Verify the response contains `PONG`.
+   - Run:
+     ```bash
+     . "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh"
+     printf 'Reply with the single word: PONG\n' > .volley/smoke-prompt.md
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" --prompt-file .volley/smoke-prompt.md --out .volley/smoke-raw.md \
+       --cwd "$(volley_repo_root)" --model "<model or inherit>" --effort "<effort or inherit>"
+     grep -q PONG .volley/smoke-raw.md && echo "[PASS] Codex replied PONG"
+     ```
+     Do not save the smoke test's `SESSION_ID` to any role.
    - **This doubles as model validation (no hard-coded allowlist).** If Codex returns a "model not found / unavailable" style error, report it verbatim and tell the user to fix `model` in `.volley/config.json` (or `.volley/local.json` overrides) - never silently fall back to another model.
-   - If the call fails with an auth error, tell the user to run `codex login` and retry. If the tool is somehow unavailable, return to step 2 (run `/reload-plugins` or restart, then re-run `/volley:setup`).
+   - If the call fails with an auth error, tell the user to run `codex login` and retry.
 
 5. **Print the next-step block.**
    - Use `volley_next_step` from the lib:
@@ -77,4 +79,4 @@ Two files, one shared and one local. Claude parses both natively (no jq).
 
 - **Codex not installed:** Tell user to install: `npm install -g @openai/codex` (or whatever their install path was).
 - **Codex not logged in:** Run `codex login` (interactive — user must do this themselves).
-- **MCP tool missing after restart:** Check `.mcp.json` syntax; run `/mcp` to see Claude Code's view of registered servers.
+- **Errors mentioning `codex mcp-server` or MCP:** an old Volley-era `.mcp.json` is still registered; remove that entry - Volley no longer uses MCP.

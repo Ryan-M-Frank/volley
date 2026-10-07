@@ -165,7 +165,7 @@ volley_validate_token() {
   return 0
 }
 
-# Build the codex model/effort flag fragment for `codex exec` / the MCP config.
+# Build the codex model/effort flag fragment for `codex exec` (spawner and codex-exec.sh).
 # "inherit"/empty => that flag is omitted (Codex uses its own default).
 # Only validated tokens are emitted, so literal insertion into a command
 # string is safe on every platform (no spaces/quotes possible).

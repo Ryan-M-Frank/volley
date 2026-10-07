@@ -1,6 +1,6 @@
 ---
 name: review-plan
-description: Use to send a plan document to Codex for review via MCP. Defaults to the most recently modified PLAN.md under .planning/, or accept an explicit path argument. Codex's review is written to .volley/PLAN-REVIEW.md and surfaced inline. Fast - completes in seconds.
+description: Use to send a plan document to Codex for review via `codex exec`. Defaults to the most recently modified PLAN.md under .planning/, or accept an explicit path argument. Codex's review is written to .volley/PLAN-REVIEW.md and surfaced inline. Fast - completes in seconds.
 ---
 
 # /volley:review-plan
@@ -29,7 +29,7 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
 
 4. **Build the review prompt for Codex.**
 
-   The prompt to send via `mcp__codex__codex` (the only Codex session-start tool the MCP server exposes; older docs may say `mcp__codex__review` or `mcp__codex__exec` - those names are wrong):
+   Write this prompt to `.volley/plan-review-prompt.md` (gitignored; `scripts/codex-exec.sh` sends it to Codex on stdin):
 
    ```
    You are reviewing an implementation plan. Be specific and concrete.
@@ -59,12 +59,19 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
 
 5. **Resolve the review role's model/effort/context from config.** Read `.volley/config.json` (parse it yourself; absent = defaults). Take `codex.review.model`, `codex.review.reasoningEffort`, and apply any `.volley/local.json` `modelOverrides.review`. Check `context.required` files all exist - if any is missing, stop with a clear error naming the file (fail early). Note which `context.optional` files exist; missing optional files are reported and skipped.
 
-6. **Invoke Codex via MCP.** Call `mcp__codex__codex` with the review prompt and:
-   - `sandbox: "read-only"` (reviews are non-mutating) and `approval-policy: "never"` (no interactive prompts) - **preserve these exactly**.
-   - `cwd: <canonical git root>` (from `git rev-parse --show-toplevel`) so Codex reads this project, not the MCP server's incidental cwd.
-   - `model: "<resolved>"` **only if** not `inherit`; and `config: { "model_reasoning_effort": "<effort>" }` if an effort is set.
-   - **Continuity:** capture the returned `threadId` and save it to `.volley/local.json` under `roles.planReview` (with `updatedAtUtc`). Within *this* exchange, follow-ups use `mcp__codex__codex-reply` with that `threadId` (verified to retain context). Across a Claude restart do **not** try to reuse it over MCP - the session-start tool has no resume input; instead start a fresh session, rehydrate from the context files + `.volley/CHECKPOINT.md`, and tell the user continuity fell back to file-based context (with the reason).
-   - If an error indicates the MCP server isn't reachable, tell the user to restart Claude Code and re-run `/volley:setup`. If Codex reports an unavailable model or bad reasoning level, surface it verbatim and stop - never silently substitute.
+6. **Invoke Codex via `scripts/codex-exec.sh`.** (Codex 0.156 removed `codex mcp-server`, so Volley no longer uses an MCP bridge; reviews run through `codex exec`.)
+   - **Resume or fresh:** pass `--resume <id>` only if `.volley/local.json` has `roles.planReview.threadId` **and** the stored `repository` matches the live checkout (`volley_repo_identity_matches "<canonicalRoot>" "<remote>"`). Otherwise omit it.
+   - Run it with a long timeout (high-effort reviews take minutes; prefer running it in the background):
+     ```bash
+     . "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh"
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" \
+       --prompt-file .volley/plan-review-prompt.md --out .volley/plan-review-raw.md \
+       --cwd "$(volley_repo_root)" --model "<resolved model or inherit>" --effort "<resolved effort or inherit>" \
+       [--resume "<threadId>"]
+     ```
+     The script always runs Codex **read-only** (`--sandbox read-only`; on resume `-c sandbox_mode="read-only"`), validates the model/effort tokens, and prints `SESSION_ID=<id>` and `CONTINUITY=<fresh|resumed|fallback:...>` as its last lines.
+   - **Continuity:** save `SESSION_ID` to `.volley/local.json` under `roles.planReview` (`threadId`, `updatedAtUtc`). If `CONTINUITY` starts with `fallback:`, tell the user the saved session could not be resumed (give the reason after the colon) and that this review started fresh from the files.
+   - **Errors:** exit 2 = bad config (e.g. an unsafe model token) - surface it and stop; exit 3 = Codex wrote no review; any other non-zero exit = show Codex's stderr verbatim. An unavailable model or bad reasoning level is surfaced as-is - never silently substitute another model. An auth error means the user should run `codex login`.
 
 7. **Write the review to `.volley/PLAN-REVIEW.md`.** Prepend a small header with the plan path and timestamp, then Codex's response:
 
@@ -76,7 +83,7 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
 
    ---
 
-   <Codex's response verbatim>
+   <Codex's response verbatim, i.e. the contents of .volley/plan-review-raw.md>
    ```
 
 8. **Surface the review inline.** Print the file content (or a clean summary if it's long) so the user reads it without opening another editor.
