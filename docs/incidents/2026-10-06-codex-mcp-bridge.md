@@ -33,9 +33,9 @@ depended on disappeared underneath it.
 
 ## Why it was not caught
 
-- **No recurring check against a real Codex.** The `/volley:setup` smoke test did call the real bridge, but only
-  once, at setup time. CI and the test suite are offline by design, so nothing re-checked the bridge after Codex
-  was upgraded.
+- **No recurring check against a real Codex.** The `/volley:setup` smoke test called the real bridge whenever
+  setup was run, but there was no automated recurring check. CI and the test suite are offline by design, so
+  nothing re-checked the bridge after Codex was upgraded.
 - **`/volley:diagnose` only checked that the MCP tool was present,** and only told the user to reload plugins when
   it was missing. It could not tell "not loaded yet" from "the server cannot start".
 - **The version floor was a minimum only** (`>= 0.129`). It said nothing about newer releases removing commands.
@@ -48,8 +48,7 @@ depended on disappeared underneath it.
   - **Fresh review:** `codex exec --sandbox read-only -C <repo root> --json -o <scratch file> -` with the prompt on
     stdin.
   - **Resumed review:** `codex exec resume <id>`. In 0.156.1 `exec resume` accepts neither `--sandbox` nor `-C`, so
-    the script enforces read-only with `-c 'sandbox_mode="read-only"'` and runs from the repo root (Codex also uses
-    the current directory to find the saved session). A live check confirmed a resumed session could not write a
+    the script enforces read-only with `-c 'sandbox_mode="read-only"'` and runs from the repo root. A live check confirmed a resumed session could not write a
     file.
   - **When it resumes:** only if `codex.review.continuity` allows it (`resume-if-safe`, or `session-only` for a
     follow-up round in the same Claude conversation) and the stored repository identity matches. An invalid
@@ -67,7 +66,7 @@ The two-reviewer process on PR #5 (Codex gpt-6-astra, then a Claude Fable review
   - **Released 0.2:** affected the `/volley:implement` spawner, which builds its Codex command line from those
     values. 0.2 reviews were not affected, because they passed model and effort to the MCP tool as structured
     parameters.
-  - **This PR:** the new exec-based review path was exposed during development, before merge.
+  - **PR #5:** the new exec-based review path was exposed during its development, before merge.
   - **Fixed:** validation now checks the whole value and rejects a leading dash, and the review script passes model
     and effort as separate array elements.
 - **macOS bash 3.2.** A revision during PR #5 (commit `a6a8560`) switched the script to an argument array. bash 3.2
@@ -80,4 +79,4 @@ The two-reviewer process on PR #5 (Codex gpt-6-astra, then a Claude Fable review
   so a removed or renamed command shows up the next time the check runs. Tracked with the review nits in
   [issue #6](https://github.com/Ryan-M-Frank/volley/issues/6).
 - After upgrading Codex, run `/volley:setup`'s smoke test (or one review) before relying on reviews.
-  `/volley:diagnose` only checks that `codex exec` runs, not authentication or resume.
+  `/volley:diagnose` only checks that `codex exec --help` succeeds, not authentication or resume.
