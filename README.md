@@ -17,6 +17,9 @@ You stay in Claude. Codex shows up when you need it, leaves when it's done, and 
 
 ---
 
+
+> **Upgrading from 0.2?** Codex CLI removed `codex mcp-server`, which Volley 0.2 used for reviews. If you see `plugin:volley:codex (CONNECTION_CLOSED)`, or reviews can't reach Codex, update Volley to **0.3.0 or later** (it needs **Codex 0.156+**) and remove any leftover `.mcp.json` entry that runs `codex mcp-server`. [Why it broke](docs/incidents/2026-10-06-codex-mcp-bridge.md) · [Changelog](CHANGELOG.md)
+
 ## Why
 
 If you've ever:
