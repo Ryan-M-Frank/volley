@@ -1,6 +1,6 @@
 ---
 name: review-plan
-description: Use to send a plan document to Codex for review via `codex exec`. Defaults to the most recently modified PLAN.md under .planning/, or accept an explicit path argument. Codex's review is written to .volley/PLAN-REVIEW.md and surfaced inline. Fast - completes in seconds.
+description: Use to send a plan document to Codex for review via `codex exec`. Defaults to the most recently modified PLAN.md under .planning/, or accept an explicit path argument. Codex's review is written to .volley/PLAN-REVIEW.md and surfaced inline. A high-effort review usually takes a few minutes.
 ---
 
 # /volley:review-plan
@@ -34,6 +34,8 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
    ```
    You are reviewing an implementation plan. Be specific and concrete.
 
+   PROJECT CONTEXT: before reviewing, read these files in the repo (read-only): <list every context.required file, every context.optional file that exists, and the managedCheckpoint (default .volley/CHECKPOINT.md) if it exists>.
+
    ACCEPTANCE CRITERIA (from HANDOFF.md):
    <paste HANDOFF.md content>
 
@@ -60,7 +62,10 @@ Hand a plan to Codex. Get back a review. Write it to disk, show it inline.
 5. **Resolve the review role's model/effort/context from config.** Read `.volley/config.json` (parse it yourself; absent = defaults). Take `codex.review.model`, `codex.review.reasoningEffort`, and apply any `.volley/local.json` `modelOverrides.review`. Check `context.required` files all exist - if any is missing, stop with a clear error naming the file (fail early). Note which `context.optional` files exist; missing optional files are reported and skipped.
 
 6. **Invoke Codex via `scripts/codex-exec.sh`.** (Codex 0.156 removed `codex mcp-server`, so Volley no longer uses an MCP bridge; reviews run through `codex exec`.)
-   - **Resume or fresh:** pass `--resume <id>` only if `.volley/local.json` has `roles.planReview.threadId` **and** the stored `repository` matches the live checkout (`volley_repo_identity_matches "<canonicalRoot>" "<remote>"`). Otherwise omit it.
+   - **Resume or fresh** - follow `codex.review.continuity` (absent = `session-only`), and only ever resume when `.volley/local.json` has `roles.planReview.threadId` **and** the stored `repository` matches the live checkout (`volley_repo_identity_matches "<canonicalRoot>" "<remote>"`):
+     - `resume-if-safe`: pass `--resume <threadId>`.
+     - `session-only` (the default): pass `--resume <threadId>` only if that id was saved by a review earlier **in this same Claude conversation** (a follow-up round). A fresh conversation or a restart starts a new Codex session.
+     - `rehydrate`: never pass `--resume`; every review starts fresh from the context files.
    - Run it with a long timeout (high-effort reviews take minutes; prefer running it in the background):
      ```bash
      . "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh"

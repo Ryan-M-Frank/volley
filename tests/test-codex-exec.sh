@@ -26,7 +26,7 @@ SID_GOOD="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 run() {
   FD="$TMP/fake.$RANDOM$RANDOM"; mkdir -p "$FD"
   OUTFILE="$REPO/.volley/REVIEW out.md"
-  rm -f "$OUTFILE"
+  mkdir -p "$REPO/.volley" && echo "STALE REVIEW FROM AN EARLIER RUN" > "$OUTFILE"
   OUT_TEXT=$(FAKE_CODEX_DIR="$FD" VOLLEY_CODEX_BIN="$FAKE" bash "$HELPER" "$@" 2>"$FD/stderr")
   RC=$?
   CALLS=$(cat "$FD/calls" 2>/dev/null || echo 0)
@@ -42,7 +42,8 @@ run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --
 [ "$(sed -n 1p "$FD/args.1")" = "exec" ] && pass "fresh: subcommand is exec" || fail "fresh: first arg $(sed -n 1p "$FD/args.1")"
 has_pair 1 --sandbox read-only && pass "fresh: --sandbox read-only" || fail "fresh: missing --sandbox read-only"
 has_arg 1 --json && pass "fresh: --json" || fail "fresh: missing --json"
-has_pair 1 -o "$REPO/.volley/REVIEW out.md" && pass "fresh: -o <out> (path with space kept whole)" || fail "fresh: -o pair wrong"
+has_pair 1 -o "$REPO/.volley/REVIEW out.md.attempt" && pass "fresh: -o <out>.attempt scratch file (path with space kept whole)" || fail "fresh: -o pair wrong"
+[ ! -e "$REPO/.volley/REVIEW out.md.attempt" ] && pass "fresh: scratch file published, none left behind" || fail "fresh: scratch file left behind"
 has_pair 1 -C "$REPO" && pass "fresh: -C <repo root>" || fail "fresh: -C pair wrong"
 has_pair 1 -m gpt-6-astra && pass "fresh: -m model" || fail "fresh: missing -m gpt-6-astra"
 has_pair 1 -c model_reasoning_effort=high && pass "fresh: effort flag" || fail "fresh: missing effort"
@@ -98,6 +99,48 @@ run --prompt-file "$TMP/missing.md" --out "$REPO/.volley/REVIEW out.md" --cwd "$
 [ "$RC" -eq 2 ] && [ "$CALLS" = "0" ] && pass "missing prompt file: exit 2" || fail "missing prompt: rc=$RC calls=$CALLS"
 run --prompt-file "$PROMPT" --cwd "$REPO"
 [ "$RC" -eq 2 ] && pass "missing --out: exit 2" || fail "missing --out: rc=$RC"
+
+# ── multiline / leading-dash tokens must not smuggle extra codex arguments (sandbox bypass) ─
+run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --effort $'high
+--config
+sandbox_mode="danger-full-access"'
+[ "$RC" -eq 2 ] && [ "$CALLS" = "0" ] && pass "multiline effort: rejected, codex never called" || fail "multiline effort: rc=$RC calls=$CALLS"
+run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --model $'gpt-6-astra
+--dangerously-bypass-approvals-and-sandbox'
+[ "$RC" -eq 2 ] && [ "$CALLS" = "0" ] && pass "multiline model: rejected, codex never called" || fail "multiline model: rc=$RC calls=$CALLS"
+run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --model --dangerously-bypass-approvals-and-sandbox
+[ "$RC" -eq 2 ] && [ "$CALLS" = "0" ] && pass "leading-dash model: rejected" || fail "leading-dash model: rc=$RC calls=$CALLS"
+run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --resume $'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+x'
+[ "$(sed -n 2p "$FD/args.1")" != "resume" ] && pass "multiline session id: not resumed" || fail "multiline session id: resumed"
+
+# ── a trailing option without a value is a usage error, not an endless loop ─────────────────
+FD="$TMP/fake.trailing"; mkdir -p "$FD"
+FAKE_CODEX_DIR="$FD" VOLLEY_CODEX_BIN="$FAKE" timeout 10 bash "$HELPER" --prompt-file "$PROMPT" --out >/dev/null 2>&1
+rc=$?
+[ "$rc" -eq 2 ] && pass "trailing option: exit 2" || fail "trailing option: rc=$rc (124 means it hung)"
+
+# ── a resume that writes a partial review and then fails must never be reported as the review ─
+FAKE_CODEX_PARTIAL_RESUME=1 FAKE_CODEX_NO_OUT=1 run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --resume "$SID_GOOD"
+[ "$RC" -eq 3 ] && pass "partial resume + empty fresh: exit 3" || fail "partial resume: rc=$RC"
+grep -q "PARTIAL FROM FAILED RESUME" "$REPO/.volley/REVIEW out.md" 2>/dev/null && fail "partial resume: partial text left as the review" || pass "partial resume: partial text not published"
+
+# ── a stale review from an earlier run is never mistaken for this run's output ───────────────
+FAKE_CODEX_NO_OUT=1 run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO"
+[ "$RC" -eq 3 ] && [ ! -e "$REPO/.volley/REVIEW out.md" ] && pass "stale output: removed, exit 3" || fail "stale output: rc=$RC"
+
+# ── relative paths keep their meaning when resume changes into --cwd ─────────────────────────
+SUB="$TMP/elsewhere"; mkdir -p "$SUB"
+printf 'Prompt in the caller dir.
+' > "$SUB/rel-prompt.md"
+printf 'WRONG prompt in the repo root.
+' > "$REPO/rel-prompt.md"
+FD="$TMP/fake.rel"; mkdir -p "$FD"
+( cd "$SUB" && FAKE_CODEX_DIR="$FD" VOLLEY_CODEX_BIN="$FAKE" bash "$HELPER" --prompt-file rel-prompt.md --out rel-out.md --cwd "$REPO" --resume "$SID_GOOD" >/dev/null 2>&1 )
+rc=$?
+[ "$rc" -eq 0 ] && pass "relative paths: exit 0" || fail "relative paths: rc=$rc"
+cmp -s "$SUB/rel-prompt.md" "$FD/stdin.1" && pass "relative paths: caller's prompt was sent" || fail "relative paths: wrong prompt sent"
+[ -s "$SUB/rel-out.md" ] && [ ! -e "$REPO/rel-out.md" ] && pass "relative paths: review written beside the caller" || fail "relative paths: output landed in the wrong place"
 
 echo ""
 echo "codex-exec: $PASS passed, $FAIL failed"

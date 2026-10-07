@@ -143,8 +143,9 @@ volley_next_step_done() {
 
 # Safe token charset for any value interpolated into a codex command line.
 # Model names and reasoning levels are bare identifiers; anything outside this
-# set is rejected so untrusted config can never inject shell or argv.
-VOLLEY_TOKEN_RE='^[A-Za-z0-9._-]+$'
+# set is rejected so untrusted config can never inject shell or argv. The first
+# character must be alphanumeric so a value can never be read as a flag.
+VOLLEY_TOKEN_RE='^[A-Za-z0-9][A-Za-z0-9._-]*$'
 
 # Return 0 if the value means "use Codex's own default" (unset or "inherit").
 # Usage: volley_is_inherit "$model"
@@ -158,8 +159,10 @@ volley_is_inherit() {
 # Usage: volley_validate_token "$value" "model"
 volley_validate_token() {
   local value=$1 name=$2
-  if ! printf '%s' "$value" | grep -Eq "$VOLLEY_TOKEN_RE"; then
-    echo "ERROR: $name '$value' is not a bare identifier ([A-Za-z0-9._-]); refusing to interpolate into a codex command." >&2
+  # Match the WHOLE value with bash's regex engine. (grep matches line by line, so a
+  # multiline value with one valid line used to pass and smuggle extra argv entries.)
+  if ! [[ $value =~ $VOLLEY_TOKEN_RE ]]; then
+    echo "ERROR: $name '$value' is not a bare identifier ([A-Za-z0-9][A-Za-z0-9._-]*); refusing to interpolate into a codex command." >&2
     return 1
   fi
   return 0

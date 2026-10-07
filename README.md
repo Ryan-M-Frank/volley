@@ -85,7 +85,7 @@ Two transports for two latency profiles. Short ops (plan review, PR review) run 
 ## Requirements
 
 - **[Claude Code](https://docs.claude.com/claude-code)** — the host environment
-- **[Codex CLI](https://github.com/openai/codex)** >= 0.129, authenticated (`codex login`)
+- **[Codex CLI](https://github.com/openai/codex)** >= 0.156, authenticated (`codex login`)
 - **Bash** (Git Bash on Windows is fine)
 - For `/volley:implement` only:
   - **macOS:** iTerm2 or Terminal.app

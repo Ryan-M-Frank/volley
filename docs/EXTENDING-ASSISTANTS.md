@@ -81,6 +81,33 @@ This is a concrete walkthrough. Gemini CLI (the `gemini` command from `@google/g
 
 Write `scripts/gemini-exec.sh` with the same arguments and `SESSION_ID=` / `CONTINUITY=` output as `scripts/codex-exec.sh`, running Gemini read-only, and point the review skills at it.
 
+### Step 2 - Update each platform handler
+
+In `scripts/platforms/windows.sh`, change the `ps_cmd` line from:
+
+```bash
+local ps_cmd="Get-Content -Raw '${escaped}' | codex exec"
+```
+
+to:
+
+```bash
+local ps_cmd="Get-Content -Raw '${escaped}' | gemini"
+```
+
+Apply the equivalent one-line change in `scripts/platforms/macos.sh` and `scripts/platforms/linux.sh` (each has a `cat '$prompt_file' | codex exec` line — note that exact quoting differs per handler; e.g. linux/tmux use `printf %q` to produce a quoted path before piping).
+
+### Step 3 - Update skill prose
+
+In `skills/setup/SKILL.md`, change:
+
+```
+Run: `codex --version` — must succeed and print a version >= 0.156.
+```
+
+to:
+
+```
 Run: `gemini --version` — must succeed.
 ```
 
@@ -132,6 +159,6 @@ assistant_version_check()
 
 The active adapter is selected by a `VOLLEY_ASSISTANT` env var (default: `codex`). `/volley:setup` gains a backend picker step that sets `VOLLEY_ASSISTANT` in a per-repo `.volley/CONFIG` file.
 
-`scripts/spawn-codex.sh` becomes `scripts/spawn-assistant.sh`, sources `scripts/assistants/${VOLLEY_ASSISTANT}.sh`, and calls `assistant_spawn`. The review and setup skills read `assistant_mcp_server_name()` instead of hardcoding `mcp__codex__codex`.
+`scripts/spawn-codex.sh` becomes `scripts/spawn-assistant.sh`, sources `scripts/assistants/${VOLLEY_ASSISTANT}.sh`, and calls `assistant_spawn`. The review and setup skills call `assistant_review_script()` instead of hardcoding `scripts/codex-exec.sh`.
 
 **If you want to contribute a new assistant backend, target this interface.** A PR that adds `scripts/assistants/gemini.sh` implementing those three functions, plus tests in `tests/test-assistants.sh`, lands cleanly without touching the platform handlers or skill prose. PRs that patch individual platform files for a new assistant are harder to maintain and will be asked to rebase onto the adapter interface once it lands.

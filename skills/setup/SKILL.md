@@ -47,9 +47,12 @@ One-time installation of the Volley workflow.
      ```bash
      . "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh"
      printf 'Reply with the single word: PONG\n' > .volley/smoke-prompt.md
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" --prompt-file .volley/smoke-prompt.md --out .volley/smoke-raw.md \
-       --cwd "$(volley_repo_root)" --model "<model or inherit>" --effort "<effort or inherit>"
-     grep -q PONG .volley/smoke-raw.md && echo "[PASS] Codex replied PONG"
+     if bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" --prompt-file .volley/smoke-prompt.md --out .volley/smoke-raw.md \
+          --cwd "$(volley_repo_root)" --model "<model or inherit>" --effort "<effort or inherit>"; then
+       grep -q PONG .volley/smoke-raw.md && echo "[PASS] Codex replied PONG" || echo "[FAIL] Codex replied, but not with PONG"
+     else
+       echo "[FAIL] codex-exec.sh exited $? - read the error above"
+     fi
      ```
      Do not save the smoke test's `SESSION_ID` to any role.
    - **This doubles as model validation (no hard-coded allowlist).** If Codex returns a "model not found / unavailable" style error, report it verbatim and tell the user to fix `model` in `.volley/config.json` (or `.volley/local.json` overrides) - never silently fall back to another model.

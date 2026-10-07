@@ -33,6 +33,9 @@ for bad in 'a b' 'a;rm' 'a$(x)' 'a`x`' 'a|b' 'a&b' "a'b" 'a"b' '../x' 'a>b'; do
   fi
 done
 pass "validate: rejects every unsafe/metachar token"
+volley_validate_token $'high
+--config' effort 2>/dev/null && fail "validate should REJECT a multiline token" || pass "validate: rejects multiline token"
+volley_validate_token "--dangerously-bypass-approvals-and-sandbox" model 2>/dev/null && fail "validate should REJECT a leading dash" || pass "validate: rejects leading dash"
 
 # ── volley_codex_flags ────────────────────────────────────────────────────
 [ "$(volley_codex_flags inherit inherit)" = "" ] \

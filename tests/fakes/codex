@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fake `codex` for offline tests of scripts/codex-exec.sh. Records argv, stdin and cwd per call
 # (call N writes $FAKE_CODEX_DIR/args.N etc.), emits a minimal --json event stream and writes the
-# -o file. Knobs: FAKE_CODEX_THREAD, FAKE_CODEX_EXIT, FAKE_CODEX_FAIL_RESUME=1, FAKE_CODEX_NO_OUT=1.
+# -o file. Knobs: FAKE_CODEX_THREAD, FAKE_CODEX_EXIT, FAKE_CODEX_FAIL_RESUME=1, FAKE_CODEX_PARTIAL_RESUME=1, FAKE_CODEX_NO_OUT=1.
 dir="${FAKE_CODEX_DIR:?FAKE_CODEX_DIR not set}"
 n=$(( $(cat "$dir/calls" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$dir/calls"
 printf '%s\n' "$@" > "$dir/args.$n"
@@ -9,6 +9,10 @@ pwd > "$dir/pwd.$n"
 cat > "$dir/stdin.$n"
 out=""; prev=""
 for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
+if [ "${FAKE_CODEX_PARTIAL_RESUME:-}" = "1" ] && [ "${2:-}" = "resume" ]; then
+  [ -n "$out" ] && echo "PARTIAL FROM FAILED RESUME" > "$out"
+  echo "Error: stream disconnected mid-turn" >&2; exit 1
+fi
 if [ "${FAKE_CODEX_FAIL_RESUME:-}" = "1" ] && [ "${2:-}" = "resume" ]; then
   echo "Error: no session found with that id" >&2; exit 1
 fi
