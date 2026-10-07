@@ -13,5 +13,6 @@ CODEX-STARTED-*
 *-prompt.md
 *-raw.md
 *.events.jsonl
+*.attempt
 # NOTE: config.json and CHECKPOINT.md are intentionally NOT ignored - they are
 # shared, committed project state.

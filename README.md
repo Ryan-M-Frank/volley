@@ -148,7 +148,7 @@ Volley lets you pick which Codex model answers, separately for reviews and imple
 - **Project context**: every Codex session runs with the canonical Git root as its `cwd` and is pointed at the project's authority files (`config.json` `context` manifest - required files must exist, optional ones are skipped if absent).
 - **Conversational continuity**: within a review exchange, follow-ups resume the exact Codex thread. Implementation can optionally resume an exact prior session by id (never `--last`), guarded by repository identity so a copied state file can't resume another project.
 
-**The boundary (important):** Volley can resume **Volley-created** Codex conversations and share your project's committed files. It **cannot** inherit Claude's private chat history, and it **cannot** attach to an unrelated Codex desktop-app task. Across a full restart, reviews resume the saved Codex session when the repo identity still matches; otherwise they rehydrate a fresh Codex session from your project files + `CHECKPOINT.md` rather than pretending a dead thread was preserved - and they tell you when that fallback happens.
+**The boundary (important):** Volley can resume **Volley-created** Codex conversations and share your project's committed files. It **cannot** inherit Claude's private chat history, and it **cannot** attach to an unrelated Codex desktop-app task. Across a full restart, reviews resume the saved Codex session only when `codex.review.continuity` is `resume-if-safe` and the repo identity still matches; by default (`session-only`) and with `rehydrate` they instead rehydrate a fresh Codex session from your project files + `CHECKPOINT.md` rather than pretending a dead thread was preserved - and they tell you when that fallback happens.
 
 ## FAQ
 

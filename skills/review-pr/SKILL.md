@@ -61,7 +61,7 @@ Codex reviews a PR. You decide whether to post the review as a comment.
    Keep it under 800 words.
    ```
 
-5. **Invoke Codex via `scripts/codex-exec.sh`.** Same rules as `/volley:review-plan` step 6, with role `prReview`: write the prompt to `.volley/pr-<num>-review-prompt.md`, then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" --prompt-file .volley/pr-<num>-review-prompt.md --out .volley/pr-<num>-review-raw.md --cwd "$(volley_repo_root)" --model <resolved> --effort <resolved> [--resume <roles.prReview.threadId>]` (resume per `codex.review.continuity` exactly as in `/volley:review-plan` step 6, with `roles.prReview`, and only when the repo identity matches). Save `SESSION_ID` to `.volley/local.json` under `roles.prReview`; report any `CONTINUITY=fallback:*`. Surface Codex errors verbatim; never substitute a model.
+5. **Invoke Codex via `scripts/codex-exec.sh`.** First resolve model, effort, local overrides and required context files exactly as in `/volley:review-plan` step 5 (stop if a required file is missing), then follow its step 6 with role `prReview`: write the prompt to `.volley/pr-<num>-review-prompt.md`, then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-exec.sh" --prompt-file .volley/pr-<num>-review-prompt.md --out .volley/pr-<num>-review-raw.md --cwd "$(volley_repo_root)" --model <resolved> --effort <resolved> [--resume <roles.prReview.threadId>]` (resume per `codex.review.continuity` exactly as in `/volley:review-plan` step 6, with `roles.prReview`, and only when the repo identity matches). Save `SESSION_ID` to `.volley/local.json` under `roles.prReview`; report any `CONTINUITY=fallback:*`. Surface Codex errors verbatim; never substitute a model.
 
 6. **Write to `.volley/PR-REVIEW-<num>.md`.**
    ```markdown

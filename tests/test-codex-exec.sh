@@ -89,10 +89,12 @@ run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO" --
 # ── codex failure propagates its exit code ──────────────────────────────────────────────────
 FAKE_CODEX_EXIT=7 run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO"
 [ "$RC" -eq 7 ] && pass "codex failure: exit code propagated" || fail "codex failure: rc=$RC"
+ls "$REPO/.volley/"*.attempt >/dev/null 2>&1 && fail "codex failure: scratch files left behind" || pass "codex failure: no scratch files left"
 
 # ── codex succeeded but wrote no review: that is an error, not a silent empty review ────────
 FAKE_CODEX_NO_OUT=1 run --prompt-file "$PROMPT" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO"
 [ "$RC" -eq 3 ] && pass "empty output: exit 3" || fail "empty output: rc=$RC"
+ls "$REPO/.volley/"*.attempt >/dev/null 2>&1 && fail "empty output: scratch files left behind" || pass "empty output: no scratch files left"
 
 # ── usage errors ────────────────────────────────────────────────────────────────────────────
 run --prompt-file "$TMP/missing.md" --out "$REPO/.volley/REVIEW out.md" --cwd "$REPO"
@@ -115,9 +117,12 @@ x'
 [ "$(sed -n 2p "$FD/args.1")" != "resume" ] && pass "multiline session id: not resumed" || fail "multiline session id: resumed"
 
 # ── a trailing option without a value is a usage error, not an endless loop ─────────────────
+# Portable stand-in for GNU timeout (macOS has none): 124 if still running after ~10 s.
 FD="$TMP/fake.trailing"; mkdir -p "$FD"
-FAKE_CODEX_DIR="$FD" VOLLEY_CODEX_BIN="$FAKE" timeout 10 bash "$HELPER" --prompt-file "$PROMPT" --out >/dev/null 2>&1
-rc=$?
+FAKE_CODEX_DIR="$FD" VOLLEY_CODEX_BIN="$FAKE" bash "$HELPER" --prompt-file "$PROMPT" --out >/dev/null 2>&1 &
+pid=$!; i=0
+while kill -0 "$pid" 2>/dev/null && [ $i -lt 50 ]; do sleep 0.2; i=$((i+1)); done
+if kill -0 "$pid" 2>/dev/null; then kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rc=124; else wait "$pid"; rc=$?; fi
 [ "$rc" -eq 2 ] && pass "trailing option: exit 2" || fail "trailing option: rc=$rc (124 means it hung)"
 
 # ── a resume that writes a partial review and then fails must never be reported as the review ─

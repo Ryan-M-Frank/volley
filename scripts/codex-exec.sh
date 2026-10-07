@@ -77,18 +77,22 @@ rm -f "$out" "$events" || usage_error "cannot remove the previous review at $out
 
 attempt_out="${out}.attempt"
 attempt_events="${events}.attempt"
+# Scratch files never outlive the script, whatever path it exits by (they can hold repo excerpts).
+trap 'rm -f "$attempt_out" "$attempt_events"' EXIT
+# Note: model_args is expanded as ${model_args[@]+"${model_args[@]}"} because bash 3.2 (macOS)
+# treats "${arr[@]}" of an EMPTY array as unbound under set -u.
 
 # Each attempt writes to its own scratch files; only a successful, non-empty attempt is published.
 run_fresh() {
   rm -f "$attempt_out" "$attempt_events"
-  "$bin" exec "${model_args[@]}" --sandbox read-only -C "$cwd" --json -o "$attempt_out" - \
+  "$bin" exec ${model_args[@]+"${model_args[@]}"} --sandbox read-only -C "$cwd" --json -o "$attempt_out" - \
     < "$prompt" > "$attempt_events"
 }
 run_resume() {
   rm -f "$attempt_out" "$attempt_events"
   # `exec resume` accepts neither --sandbox nor -C: read-only is enforced through config, and the
   # `cd` is load-bearing - Codex finds the saved session by filtering on the current directory.
-  ( cd "$cwd" && "$bin" exec resume "${model_args[@]}" -c 'sandbox_mode="read-only"' --json \
+  ( cd "$cwd" && "$bin" exec resume ${model_args[@]+"${model_args[@]}"} -c 'sandbox_mode="read-only"' --json \
       -o "$attempt_out" "$resume" - < "$prompt" > "$attempt_events" )
 }
 publish() {
